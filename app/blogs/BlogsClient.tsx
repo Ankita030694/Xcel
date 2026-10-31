@@ -240,7 +240,7 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
         {/* =========================================================================
             CENTERED HERO HEADER: Pill, Heading, Subheading (XCEL Brand Theme)
             ========================================================================= */}
-        <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-14 sm:mb-20">
+        <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-14 sm:mb-10">
           {/* Pill in Centre */}
           <div className="inline-flex items-center gap-2 bg-[#3b5b95]/10 text-[#3b5b95] border border-[#3b5b95]/20 px-4 py-1.5 rounded-full text-[0.75rem] font-bold tracking-[0.16em] uppercase mb-4 sm:mb-5">
             <span className="w-2 h-2 rounded-full bg-[#3b5b95] animate-pulse" />
@@ -248,7 +248,7 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
           </div>
 
           {/* Main Heading in Centre */}
-          <h1 className="text-[1.5rem] sm:text-[2.5rem] lg:text-[3rem] font-bold leading-[1.15] tracking-tight text-[#0a2766] mb-4 sm:mb-5">
+          <h1 className="text-[1.5rem] sm:text-[2.25rem] lg:text-[2.8rem] font-bold leading-[1.15] tracking-tight text-[#0a2766] mb-4 sm:mb-5">
             Industrial & Commercial Laundry: Guidance, Technology & Expertise
           </h1>
 
