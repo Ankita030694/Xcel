@@ -292,13 +292,40 @@ export const Footer = () => {
         detail: { category: categoryName } 
       }));
 
-      const mainEl = document.querySelector('main');
-      if (mainEl) {
-        const elementY = mainEl.getBoundingClientRect().top + window.scrollY;
+      try {
         window.scrollTo({
-          top: Math.max(0, elementY - 140),
-          behavior: 'smooth',
+          top: 0,
+          left: 0,
+          behavior: 'instant',
         });
+      } catch (err) {
+        window.scrollTo(0, 0);
+      }
+    }
+  };
+
+  const handleBlogsHeadingClick = (e: React.MouseEvent) => {
+    if (typeof window === 'undefined') return;
+
+    const isBlogsPage = window.location.pathname === '/blogs' || window.location.pathname === '/blogs/';
+    if (isBlogsPage) {
+      e.preventDefault();
+      try {
+        window.history.replaceState(window.history.state, '', '/blogs');
+      } catch (err) {}
+
+      window.dispatchEvent(new CustomEvent('select-blog-category', { 
+        detail: { category: 'all' } 
+      }));
+
+      try {
+        window.scrollTo({
+          top: 0,
+          left: 0,
+          behavior: 'instant',
+        });
+      } catch (err) {
+        window.scrollTo(0, 0);
       }
     }
   };
@@ -528,6 +555,7 @@ export const Footer = () => {
                 <h5 className="font-semibold text-[14px] mb-3">
                   <a 
                     href="/blogs" 
+                    onClick={handleBlogsHeadingClick}
                     className="hover:text-white/80 transition-colors"
                   >
                     INDUSTRY INSIGHTS

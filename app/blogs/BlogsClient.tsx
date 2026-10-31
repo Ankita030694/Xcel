@@ -160,6 +160,13 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
         const cat = typeof e.detail === 'string' ? e.detail : e.detail.category;
         if (cat) {
           setSelectedCategory(cat);
+          if (typeof window !== 'undefined') {
+            try {
+              window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            } catch (err) {
+              window.scrollTo(0, 0);
+            }
+          }
         }
       }
     };
