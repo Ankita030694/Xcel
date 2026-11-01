@@ -204,19 +204,32 @@ export default function ProductDetailPage() {
     }
   }, []);
 
-  useEffect(() => {
-    const scrollToTop = () => {
-      if (typeof window !== 'undefined') {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  const forceScrollToTop = () => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.scrollTo(0, 0);
+      if (document.documentElement) {
+        document.documentElement.scrollTop = 0;
+        document.documentElement.scrollLeft = 0;
       }
-    };
-    scrollToTop();
-    const rId = requestAnimationFrame(scrollToTop);
-    const t1 = setTimeout(scrollToTop, 50);
+      if (document.body) {
+        document.body.scrollTop = 0;
+        document.body.scrollLeft = 0;
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    } catch (e) {}
+  };
+
+  useEffect(() => {
+    forceScrollToTop();
+    const rId = requestAnimationFrame(forceScrollToTop);
+    const t1 = setTimeout(forceScrollToTop, 50);
+    const t2 = setTimeout(forceScrollToTop, 150);
+    const t3 = setTimeout(forceScrollToTop, 350);
 
     setActiveImageIndex(0);
     if (carouselRef.current) {
-      carouselRef.current.scrollTo({ left: 0, behavior: 'instant' as ScrollBehavior });
+      carouselRef.current.scrollLeft = 0;
     }
     const cached = getProductFromCache(id);
     if (cached) {
@@ -224,9 +237,15 @@ export default function ProductDetailPage() {
       setLoading(false);
     }
 
+    const onPageShow = () => forceScrollToTop();
+    window.addEventListener('pageshow', onPageShow);
+
     return () => {
       cancelAnimationFrame(rId);
       clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      window.removeEventListener('pageshow', onPageShow);
     };
   }, [id]);
 
@@ -430,15 +449,14 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     if (!loading && product && typeof window !== 'undefined') {
-      const scrollToTop = () => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-      };
-      scrollToTop();
-      const rId = requestAnimationFrame(scrollToTop);
-      const t1 = setTimeout(scrollToTop, 50);
+      forceScrollToTop();
+      const rId = requestAnimationFrame(forceScrollToTop);
+      const t1 = setTimeout(forceScrollToTop, 50);
+      const t2 = setTimeout(forceScrollToTop, 150);
       return () => {
         cancelAnimationFrame(rId);
         clearTimeout(t1);
+        clearTimeout(t2);
       };
     }
   }, [loading, product]);
@@ -520,7 +538,7 @@ export default function ProductDetailPage() {
     return (
       <div className="min-h-screen bg-white font-sans flex flex-col">
         <Header />
-        <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10 animate-pulse min-h-[85vh]">
+        <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 md:pt-10 lg:pt-8 pb-10 animate-pulse min-h-[85vh]">
           <div className="h-4 w-60 bg-gray-200 rounded-md mb-8"></div>
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-12 mb-12">
             <div className="w-full sm:w-[80%] md:w-[65%] lg:w-[45%] xl:w-[40%] aspect-square bg-gray-100 rounded-2xl sm:rounded-3xl lg:rounded-[32px]"></div>
@@ -642,10 +660,10 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-white font-sans flex flex-col">
       <Header />
 
-      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-7 lg:pt-8 pb-10 min-h-[80vh]">
+      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 md:pt-10 lg:pt-8 pb-10 min-h-[80vh]">
         
         {/* Breadcrumbs Navigation */}
-        <div className="w-full mb-4 sm:mb-6 lg:mb-8">
+        <div className="w-full mb-4 sm:mb-6 lg:mb-8 relative z-10">
           <nav 
             aria-label="Breadcrumb"
             className="flex flex-row items-center gap-1.5 sm:gap-2.5 text-[12px] sm:text-[13px] md:text-[14px] text-[#363636] overflow-x-auto scrollbar-hide whitespace-nowrap py-1"
@@ -680,7 +698,7 @@ export default function ProductDetailPage() {
             </Link>
             <ChevronRight size={13} strokeWidth={1.5} className="text-gray-400 shrink-0" />
             <span 
-              className="text-[#0a2766] font-bold shrink-0 max-w-[200px] sm:max-w-[320px] md:max-w-none truncate"
+              className="text-[#0a2766] font-bold shrink-0 max-w-[200px] sm:max-w-[280px] md:max-w-[420px] lg:max-w-[500px] xl:max-w-none truncate"
               title={product.name}
             >
               {product.name}
@@ -991,6 +1009,7 @@ export default function ProductDetailPage() {
                     key={relProd.id}
                     href={prodUrl}
                     onClick={() => {
+                      forceScrollToTop();
                       try {
                         sessionStorage.setItem(`xcel_prod_${relProd.id}`, JSON.stringify(relProd));
                         if (relProd.slug) {
