@@ -307,10 +307,6 @@ export const Footer = () => {
   const handleBlogsHeadingClick = (e: React.MouseEvent) => {
     if (typeof window === 'undefined') return;
 
-    try {
-      sessionStorage.setItem('xcel_scroll_to_blogs', 'true');
-    } catch (err) {}
-
     const isBlogsPage = window.location.pathname === '/blogs' || window.location.pathname === '/blogs/';
     if (isBlogsPage) {
       e.preventDefault();
@@ -319,10 +315,14 @@ export const Footer = () => {
       } catch (err) {}
 
       window.dispatchEvent(new CustomEvent('select-blog-category', { 
-        detail: { category: 'all' } 
+        detail: { category: 'all', scrollToTop: false } 
       }));
 
-      window.dispatchEvent(new CustomEvent('trigger-blogs-autoscroll'));
+      window.dispatchEvent(new CustomEvent('scroll-to-blogs-content-direct'));
+    } else {
+      try {
+        sessionStorage.setItem('xcel_scroll_to_blogs', 'true');
+      } catch (err) {}
     }
   };
 

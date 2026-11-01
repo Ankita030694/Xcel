@@ -207,14 +207,30 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
     const handleCustomCategoryEvent = (e: any) => {
       if (e?.detail) {
         const cat = typeof e.detail === "string" ? e.detail : e.detail.category;
+        const scrollToTop = typeof e.detail === "object" && e.detail.scrollToTop !== undefined
+          ? e.detail.scrollToTop
+          : true;
+
         if (cat) {
           setSelectedCategory(cat);
           if (cat !== "all" && autoScrollTimerRef.current) {
             clearTimeout(autoScrollTimerRef.current);
           }
-          forceScrollToTop();
+          if (scrollToTop) {
+            forceScrollToTop();
+          }
         }
       }
+    };
+
+    const handleDirectScrollToContent = () => {
+      if (autoScrollTimerRef.current) {
+        clearTimeout(autoScrollTimerRef.current);
+      }
+      scrollToBlogsContent("smooth");
+      setTimeout(() => {
+        scrollToBlogsContent("smooth");
+      }, 50);
     };
 
     const handleTriggerAutoScroll = () => {
@@ -227,12 +243,13 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
 
     window.addEventListener("select-blog-category", handleCustomCategoryEvent);
     window.addEventListener("trigger-blogs-autoscroll", handleTriggerAutoScroll);
+    window.addEventListener("scroll-to-blogs-content-direct", handleDirectScrollToContent);
     window.addEventListener("popstate", syncCategoryFromUrl);
-
     return () => {
       if (autoScrollTimerRef.current) clearTimeout(autoScrollTimerRef.current);
       window.removeEventListener("select-blog-category", handleCustomCategoryEvent);
       window.removeEventListener("trigger-blogs-autoscroll", handleTriggerAutoScroll);
+      window.removeEventListener("scroll-to-blogs-content-direct", handleDirectScrollToContent);
       window.removeEventListener("popstate", syncCategoryFromUrl);
     };
   }, []);
