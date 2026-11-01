@@ -114,6 +114,45 @@ const LaundryCTA = () => {
 export default function BlogsClient({ initialArticles }: { initialArticles: BlogArticle[] }) {
   const [articles, setArticles] = useState<BlogArticle[]>(initialArticles);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const autoScrollTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const forceScrollToTop = () => {
+    if (typeof window === "undefined") return;
+    try {
+      window.scrollTo(0, 0);
+      if (document.documentElement) {
+        document.documentElement.scrollTop = 0;
+        document.documentElement.scrollLeft = 0;
+      }
+      if (document.body) {
+        document.body.scrollTop = 0;
+        document.body.scrollLeft = 0;
+      }
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    } catch (e) {}
+  };
+
+  const scrollToBlogsContent = (behavior: ScrollBehavior = "smooth") => {
+    if (typeof window === "undefined") return;
+    const element = document.getElementById("blogs-content-section");
+    if (element) {
+      const isMobile = window.innerWidth < 1024;
+      const headerOffset = isMobile ? 135 : 145;
+      const rect = element.getBoundingClientRect();
+      const currentScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+      const elementY = rect.top + currentScrollY;
+      const targetY = Math.max(0, Math.round(elementY - headerOffset));
+
+      try {
+        window.scrollTo({
+          top: targetY,
+          behavior,
+        });
+      } catch (err) {
+        window.scrollTo(0, targetY);
+      }
+    }
+  };
 
   // Only categories that currently have at least one active blog are shown
   const availableCategories = React.useMemo(() => {
@@ -140,14 +179,12 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
   }, [availableCategories, selectedCategory]);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    }
+    forceScrollToTop();
 
     const syncCategoryFromUrl = () => {
-      if (typeof window === 'undefined') return;
+      if (typeof window === "undefined") return;
       const urlParams = new URLSearchParams(window.location.search);
-      const catParam = urlParams.get('category');
+      const catParam = urlParams.get("category");
       if (catParam) {
         setSelectedCategory(catParam);
       }
@@ -155,28 +192,48 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
 
     syncCategoryFromUrl();
 
+    const shouldAutoScroll = typeof window !== "undefined" && sessionStorage.getItem("xcel_scroll_to_blogs") === "true";
+    if (shouldAutoScroll) {
+      try {
+        sessionStorage.removeItem("xcel_scroll_to_blogs");
+      } catch (e) {}
+
+      if (autoScrollTimerRef.current) clearTimeout(autoScrollTimerRef.current);
+      autoScrollTimerRef.current = setTimeout(() => {
+        scrollToBlogsContent("smooth");
+      }, 1000);
+    }
+
     const handleCustomCategoryEvent = (e: any) => {
       if (e?.detail) {
-        const cat = typeof e.detail === 'string' ? e.detail : e.detail.category;
+        const cat = typeof e.detail === "string" ? e.detail : e.detail.category;
         if (cat) {
           setSelectedCategory(cat);
-          if (typeof window !== 'undefined') {
-            try {
-              window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-            } catch (err) {
-              window.scrollTo(0, 0);
-            }
+          if (cat !== "all" && autoScrollTimerRef.current) {
+            clearTimeout(autoScrollTimerRef.current);
           }
+          forceScrollToTop();
         }
       }
     };
 
-    window.addEventListener('select-blog-category', handleCustomCategoryEvent);
-    window.addEventListener('popstate', syncCategoryFromUrl);
+    const handleTriggerAutoScroll = () => {
+      forceScrollToTop();
+      if (autoScrollTimerRef.current) clearTimeout(autoScrollTimerRef.current);
+      autoScrollTimerRef.current = setTimeout(() => {
+        scrollToBlogsContent("smooth");
+      }, 1000);
+    };
+
+    window.addEventListener("select-blog-category", handleCustomCategoryEvent);
+    window.addEventListener("trigger-blogs-autoscroll", handleTriggerAutoScroll);
+    window.addEventListener("popstate", syncCategoryFromUrl);
 
     return () => {
-      window.removeEventListener('select-blog-category', handleCustomCategoryEvent);
-      window.removeEventListener('popstate', syncCategoryFromUrl);
+      if (autoScrollTimerRef.current) clearTimeout(autoScrollTimerRef.current);
+      window.removeEventListener("select-blog-category", handleCustomCategoryEvent);
+      window.removeEventListener("trigger-blogs-autoscroll", handleTriggerAutoScroll);
+      window.removeEventListener("popstate", syncCategoryFromUrl);
     };
   }, []);
 
@@ -259,8 +316,9 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
         </div>
 
         {/* =========================================================================
-            CATEGORY FILTER TABS: Matching Products Overview Style
+            CATEGORY FILTER TABS & ARTICLES CONTAINER
             ========================================================================= */}
+        <div id="blogs-content-section" className="w-full scroll-mt-[135px] lg:scroll-mt-[145px]">
         {availableCategories.length > 0 && (
           <div className="w-full mb-8 lg:mb-12">
           <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 px-0 sm:px-2 pb-4">
@@ -377,6 +435,7 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
           ))}
         </div>
         )}
+        </div>
       </main>
 
       {/* FAQ Section */}

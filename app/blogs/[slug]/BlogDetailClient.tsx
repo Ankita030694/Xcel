@@ -120,6 +120,7 @@ export default function BlogDetailClient({
         <div className="flex items-center gap-4">
           <Link
             href="/blogs"
+            onClick={() => { try { sessionStorage.setItem("xcel_scroll_to_blogs", "true"); } catch (e) {} }}
             className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.18em] uppercase text-gray-500 hover:text-[#0a2766] transition-colors group shrink-0"
           >
             <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1 text-gray-500 group-hover:text-[#3b5b95]" />
@@ -423,6 +424,7 @@ export default function BlogDetailClient({
 
               <Link
                 href="/blogs"
+                onClick={() => { try { sessionStorage.setItem("xcel_scroll_to_blogs", "true"); } catch (e) {} }}
                 className="inline-flex items-center gap-1.5 text-sm font-bold text-[#0a2766] hover:text-[#3b5b95] transition-colors group"
               >
                 <span>View all articles</span>

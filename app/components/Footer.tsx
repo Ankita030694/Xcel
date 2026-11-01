@@ -307,6 +307,10 @@ export const Footer = () => {
   const handleBlogsHeadingClick = (e: React.MouseEvent) => {
     if (typeof window === 'undefined') return;
 
+    try {
+      sessionStorage.setItem('xcel_scroll_to_blogs', 'true');
+    } catch (err) {}
+
     const isBlogsPage = window.location.pathname === '/blogs' || window.location.pathname === '/blogs/';
     if (isBlogsPage) {
       e.preventDefault();
@@ -318,15 +322,7 @@ export const Footer = () => {
         detail: { category: 'all' } 
       }));
 
-      try {
-        window.scrollTo({
-          top: 0,
-          left: 0,
-          behavior: 'instant',
-        });
-      } catch (err) {
-        window.scrollTo(0, 0);
-      }
+      window.dispatchEvent(new CustomEvent('trigger-blogs-autoscroll'));
     }
   };
 

@@ -37,6 +37,29 @@ export const Header = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const handleIndustryInsightsClick = (e: React.MouseEvent) => {
+    setIsMobileMenuOpen(false);
+    if (typeof window === 'undefined') return;
+
+    try {
+      sessionStorage.setItem('xcel_scroll_to_blogs', 'true');
+    } catch (err) {}
+
+    const isBlogsPage = window.location.pathname === '/blogs' || window.location.pathname === '/blogs/';
+    if (isBlogsPage) {
+      e.preventDefault();
+      try {
+        window.history.replaceState(window.history.state, '', '/blogs');
+      } catch (err) {}
+
+      window.dispatchEvent(new CustomEvent('select-blog-category', { 
+        detail: { category: 'all' } 
+      }));
+
+      window.dispatchEvent(new CustomEvent('trigger-blogs-autoscroll'));
+    }
+  };
+
   return (
     <header className="w-full sticky top-0 z-50 bg-white shadow-sm font-sans">
       {/* Top Bar Ticker */}
@@ -132,6 +155,7 @@ export const Header = () => {
               </div>
               <Link 
                 href="/blogs" 
+                onClick={handleIndustryInsightsClick}
                 className={`text-[#3b5b95] font-semibold text-[14px] pb-1 border-b-[2.5px] transition-all ${
                   isActive('/blogs') ? 'border-[#3b5b95]' : 'border-transparent hover:border-[#3b5b95]'
                 }`}
@@ -230,7 +254,7 @@ export const Header = () => {
           </a>
           <Link 
             href="/blogs" 
-            onClick={() => setIsMobileMenuOpen(false)} 
+            onClick={handleIndustryInsightsClick} 
             className={`text-[#3b5b95] font-semibold text-[15px] pb-1 border-b-[2.5px] transition-all ${
               isActive('/blogs') ? 'border-[#3b5b95]' : 'border-transparent hover:text-[#2f497a]'
             }`}
