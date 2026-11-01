@@ -790,10 +790,15 @@ export default function ProductDetailPage() {
             
             {/* Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 mt-auto pt-4 lg:pt-0">
-              <button onClick={() => document.getElementById('footer-contact')?.scrollIntoView({ behavior: 'smooth' })} className="flex-1 bg-[#0a2766] text-white py-3 sm:py-3.5 px-4 rounded-xl text-[15px] font-bold flex items-center justify-center gap-2 hover:bg-[#071b4a] hover:-translate-y-1 hover:shadow-lg transition-all">
+              <a 
+                href="https://wa.me/919971025730?text=Hello%2C%20I%20found%20your%20reference%20through%20your%20website%20and%20am%20interested%20in%20purchasing%20Laundry%20Machines.%20Kindly%20connect%20me%20with%20your%20sales%20team%20to%20discuss%20my%20requirements." 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="flex-1 bg-[#0a2766] text-white py-3 sm:py-3.5 px-4 rounded-xl text-[15px] font-bold flex items-center justify-center gap-2 hover:bg-[#071b4a] hover:-translate-y-1 hover:shadow-lg transition-all"
+              >
                 <Send size={18} />
                 Request a Quote
-              </button>
+              </a>
               {product.brochureUrl ? (
                 <a href={product.brochureUrl} target="_blank" rel="noopener noreferrer" className="flex-1 bg-white text-[#0a2766] border-2 border-[#0a2766] py-3 sm:py-3.5 px-4 rounded-xl text-[15px] font-bold flex items-center justify-center gap-2 hover:bg-[#f8f9fa] hover:-translate-y-1 hover:shadow-md transition-all">
                   <Download size={18} />
@@ -1068,7 +1073,7 @@ export default function ProductDetailPage() {
             
             <div className="w-px h-6 sm:h-8 bg-white/20 shrink-0"></div>
             
-            <a href="https://wa.me/919971025730?text=Hi%2C%20I%20am%20looking%20to%20buy%20a%20Laundry%20Machine.%20Please%20share%20the%20details." target="_blank" rel="noopener noreferrer" className="flex-1 sm:flex-none bg-white text-[#0a2766] py-2.5 sm:py-3.5 px-2 xs:px-4 sm:px-8 rounded-lg sm:rounded-xl font-bold flex items-center justify-center gap-1.5 sm:gap-3 hover:bg-gray-100 hover:shadow-lg transition-all text-[13px] xs:text-[14px] sm:text-[16px] whitespace-nowrap">
+            <a href="https://wa.me/919971025730?text=Hello%2C%20I%20found%20your%20reference%20through%20your%20website%20and%20am%20interested%20in%20purchasing%20Laundry%20Machines.%20Kindly%20connect%20me%20with%20your%20sales%20team%20to%20discuss%20my%20requirements." target="_blank" rel="noopener noreferrer" className="flex-1 sm:flex-none bg-white text-[#0a2766] py-2.5 sm:py-3.5 px-2 xs:px-4 sm:px-8 rounded-lg sm:rounded-xl font-bold flex items-center justify-center gap-1.5 sm:gap-3 hover:bg-gray-100 hover:shadow-lg transition-all text-[13px] xs:text-[14px] sm:text-[16px] whitespace-nowrap">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 sm:w-[22px] sm:h-[22px]">
                 <path d="M3 21l1.65 -3.8a9 9 0 1 1 3.4 2.9l-5.05 .9" />
                 <path d="M9 10a.5 .5 0 0 0 1 0v-1a.5 .5 0 0 0 -1 0v1a5 5 0 0 0 5 5h1a.5 .5 0 0 0 0 -1h-1a.5 .5 0 0 0 0 1" />
