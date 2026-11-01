@@ -33,6 +33,8 @@ interface Product {
   highlights?: string[];
   imageUrl: string;
   additionalImages?: string[];
+  imageBgColor?: string;
+  imageBgColors?: string[];
   features: ProductFeature[];
   faqs: ProductFAQ[];
   whyChooseUs?: ProductFeature[] | string;
@@ -116,6 +118,9 @@ export default function ProductsDashboard() {
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [existingBrochure, setExistingBrochure] = useState<string | null>(null);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imageBgColor, setImageBgColor] = useState<string>('#f4f5f9');
+  const [imageBgColors, setImageBgColors] = useState<string[]>([]);
+  const [newImageBgColors, setNewImageBgColors] = useState<string[]>([]);
   const [brochureFile, setBrochureFile] = useState<File | null>(null);
   const [features, setFeatures] = useState<ProductFeature[]>([]);
   const [faqs, setFaqs] = useState<ProductFAQ[]>([]);
@@ -335,8 +340,11 @@ export default function ProductsDashboard() {
     setWhyChooseUs([]);
     setIndustriesServed([]);
     setExistingImages([]);
+    setImageBgColors([]);
+    setNewImageBgColors([]);
     setExistingBrochure(null);
     setImageFiles([]);
+    setImageBgColor('#f4f5f9');
     setBrochureFile(null);
     setFeatures([]);
     setFaqs([]);
@@ -357,7 +365,16 @@ export default function ProductsDashboard() {
     setHighlights(Array.isArray(product.highlights) ? product.highlights : []);
     setWhyChooseUs(Array.isArray(product.whyChooseUs) ? product.whyChooseUs : []);
     setIndustriesServed(Array.isArray(product.industriesServed) ? product.industriesServed : []);
-    setExistingImages([product.imageUrl, ...(product.additionalImages || [])].filter(Boolean));
+    const allExisting = [product.imageUrl, ...(product.additionalImages || [])].filter(Boolean);
+    setExistingImages(allExisting);
+    if (Array.isArray(product.imageBgColors) && product.imageBgColors.length > 0) {
+      setImageBgColors(allExisting.map((_, i) => product.imageBgColors?.[i] || product.imageBgColor || '#f4f5f9'));
+    } else {
+      const def = product.imageBgColor || '#f4f5f9';
+      setImageBgColors(allExisting.map(() => def));
+    }
+    setNewImageBgColors([]);
+    setImageBgColor(product.imageBgColor || '#f4f5f9');
     setExistingBrochure(product.brochureUrl || null);
     setFeatures(product.features || []);
     setFaqs(product.faqs || []);
@@ -435,6 +452,31 @@ export default function ProductsDashboard() {
 
   const moveImage = (from: number, to: number) => {
     setExistingImages(prev => reorderArray(prev, from, to));
+    setImageBgColors(prev => reorderArray(prev, from, to));
+  };
+
+  const handleImageBgColorChange = (index: number, newColor: string) => {
+    setImageBgColors(prev => {
+      const next = [...prev];
+      while (next.length <= index) next.push('#f4f5f9');
+      next[index] = newColor;
+      return next;
+    });
+  };
+
+  const handleNewImageBgColorChange = (index: number, newColor: string) => {
+    setNewImageBgColors(prev => {
+      const next = [...prev];
+      while (next.length <= index) next.push('#f4f5f9');
+      next[index] = newColor;
+      return next;
+    });
+  };
+
+  const handleApplyColorToAll = (colorToApply: string) => {
+    setImageBgColor(colorToApply);
+    setImageBgColors(existingImages.map(() => colorToApply));
+    setNewImageBgColors(imageFiles.map(() => colorToApply));
   };
   const moveWhyChooseUs = (from: number, to: number) => {
     setWhyChooseUs(prev => reorderArray(prev, from, to));
@@ -492,6 +534,17 @@ export default function ProductsDashboard() {
       const imageUrl = allImages[0];
       const additionalImages = allImages.slice(1);
 
+      const allColors = allImages.map((_, idx) => {
+        if (idx < existingImages.length) {
+          const col = imageBgColors[idx]?.trim() || '#f4f5f9';
+          return col.startsWith('#') ? col : `#${col}`;
+        } else {
+          const newIdx = idx - existingImages.length;
+          const col = newImageBgColors[newIdx]?.trim() || '#f4f5f9';
+          return col.startsWith('#') ? col : `#${col}`;
+        }
+      });
+
       // Upload Brochure if exists
       if (brochureFile) {
         const brochureRef = ref(storage, `brochures/${Date.now()}_${brochureFile.name}`);
@@ -512,7 +565,9 @@ export default function ProductsDashboard() {
         features: features.filter(f => f.title.trim() && f.description.trim()),
         faqs: faqs.filter(f => f.question.trim() && f.answer.trim()),
         imageUrl,
-        additionalImages
+        additionalImages,
+        imageBgColor: allColors[0] || '#f4f5f9',
+        imageBgColors: allColors
       };
 
       const cleanedSlug = customUrl
@@ -915,7 +970,35 @@ export default function ProductsDashboard() {
                           </div>
                         </td>
                         <td className="py-4 px-4">
-                          <img src={product.imageUrl} alt={product.name} className="w-16 h-16 object-contain bg-white border border-gray-200 rounded" />
+                          <div className="relative inline-block">
+                            <img 
+                              src={product.imageUrl} 
+                              alt={product.name} 
+                              className="w-16 h-16 object-contain border border-gray-200 rounded p-1" 
+                              style={{ backgroundColor: (Array.isArray(product.imageBgColors) && product.imageBgColors[0]) || product.imageBgColor || '#f4f5f9' }}
+                            />
+                            {Array.isArray(product.imageBgColors) && product.imageBgColors.length > 1 ? (
+                              <div className="flex gap-0.5 mt-1 justify-center max-w-[64px] flex-wrap" title={`${product.imageBgColors.length} images with per-image colors`}>
+                                {product.imageBgColors.slice(0, 5).map((col, cIdx) => (
+                                  <span
+                                    key={cIdx}
+                                    className="w-2.5 h-2.5 rounded-full border border-gray-300 shadow-2xs"
+                                    style={{ backgroundColor: col || '#f4f5f9' }}
+                                    title={`Image #${cIdx + 1}: ${col}`}
+                                  />
+                                ))}
+                                {product.imageBgColors.length > 5 && (
+                                  <span className="text-[9px] text-gray-500 font-bold">+{product.imageBgColors.length - 5}</span>
+                                )}
+                              </div>
+                            ) : (product.imageBgColor && product.imageBgColor.toLowerCase() !== '#f4f5f9') ? (
+                              <span 
+                                className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white shadow-xs" 
+                                style={{ backgroundColor: product.imageBgColor }}
+                                title={`Custom BG: ${product.imageBgColor}`}
+                              />
+                            ) : null}
+                          </div>
                         </td>
                         <td className="py-4 px-6 font-medium text-gray-900">
                           <div className="font-semibold text-gray-900">{product.name}</div>
@@ -1231,124 +1314,278 @@ export default function ProductsDashboard() {
                       )}
                     </div>
 
+                    {/* Apply Color to All Quick Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 mb-3 bg-blue-50/70 rounded-xl border border-blue-100 text-xs text-[#0a2766]">
+                      <div className="flex items-center gap-1.5 font-medium">
+                        <span>🎨 Per-Image Colors: Select or enter any hex code below for each image individually.</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] text-gray-500 font-normal">Quick set all:</span>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyColorToAll('#f4f5f9')}
+                          className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[11px] font-medium hover:bg-gray-50 cursor-pointer shadow-2xs"
+                        >
+                          Default (#f4f5f9)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyColorToAll('#ffffff')}
+                          className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[11px] font-medium hover:bg-gray-50 cursor-pointer shadow-2xs"
+                        >
+                          White (#ffffff)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyColorToAll('#f8f9fa')}
+                          className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[11px] font-medium hover:bg-gray-50 cursor-pointer shadow-2xs"
+                        >
+                          Light Gray (#f8f9fa)
+                        </button>
+                      </div>
+                    </div>
+
                     {existingImages.length > 0 && (
-                      <div className="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="mb-4 p-3 bg-gray-50 rounded-xl border border-gray-200">
                         <div className="flex flex-wrap gap-3">
                           {existingImages.map((imgUrl, idx) => {
                             const isDragging = draggedImageIdx === idx;
                             const isDragOver = dragOverImageIdx === idx && draggedImageIdx !== idx;
+                            const currentColor = imageBgColors[idx] || '#f4f5f9';
 
                             return (
-                              <div
-                                key={idx}
-                                draggable
-                                onDragStart={(e) => {
-                                  e.dataTransfer.effectAllowed = 'move';
-                                  setDraggedImageIdx(idx);
-                                }}
-                                onDragOver={(e) => {
-                                  e.preventDefault();
-                                  e.dataTransfer.dropEffect = 'move';
-                                }}
-                                onDragEnter={(e) => {
-                                  e.preventDefault();
-                                  setDragOverImageIdx(idx);
-                                }}
-                                onDragEnd={() => {
-                                  setDraggedImageIdx(null);
-                                  setDragOverImageIdx(null);
-                                }}
-                                onDrop={(e) => {
-                                  e.preventDefault();
-                                  if (draggedImageIdx !== null && draggedImageIdx !== idx) {
-                                    moveImage(draggedImageIdx, idx);
-                                  }
-                                  setDraggedImageIdx(null);
-                                  setDragOverImageIdx(null);
-                                }}
-                                className={`relative w-24 h-24 border rounded-lg overflow-hidden group bg-white shadow-sm cursor-grab active:cursor-grabbing transition-all select-none ${
-                                  isDragging
-                                    ? 'opacity-40 border-dashed border-2 border-[#32589c] scale-95'
-                                    : isDragOver
-                                    ? 'border-2 border-[#32589c] ring-2 ring-blue-200 scale-105 shadow-md'
-                                    : 'border-gray-200 hover:border-gray-300 hover:shadow'
-                                }`}
-                                title="Drag to reorder placement"
-                              >
-                                <img src={imgUrl} alt={`Product image ${idx + 1}`} className="w-full h-full object-contain p-1 pointer-events-none" />
-                                
-                                {/* Badge */}
-                                <div className="absolute top-1 left-1 pointer-events-none">
-                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                                    idx === 0
-                                      ? 'bg-[#0a2766] text-white shadow-sm'
-                                      : 'bg-black/70 text-white'
-                                  }`}>
-                                    {idx === 0 ? 'Main' : `#${idx + 1}`}
-                                  </span>
+                              <div key={idx} className="flex flex-col items-center gap-2 p-2.5 bg-white rounded-xl border border-gray-200 shadow-xs hover:border-gray-300 transition-all w-[130px]">
+                                {/* Draggable Image Box */}
+                                <div
+                                  draggable
+                                  onDragStart={(e) => {
+                                    e.dataTransfer.effectAllowed = 'move';
+                                    setDraggedImageIdx(idx);
+                                  }}
+                                  onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.dataTransfer.dropEffect = 'move';
+                                  }}
+                                  onDragEnter={(e) => {
+                                    e.preventDefault();
+                                    setDragOverImageIdx(idx);
+                                  }}
+                                  onDragEnd={() => {
+                                    setDraggedImageIdx(null);
+                                    setDragOverImageIdx(null);
+                                  }}
+                                  onDrop={(e) => {
+                                    e.preventDefault();
+                                    if (draggedImageIdx !== null && draggedImageIdx !== idx) {
+                                      moveImage(draggedImageIdx, idx);
+                                    }
+                                    setDraggedImageIdx(null);
+                                    setDragOverImageIdx(null);
+                                  }}
+                                  className={`relative w-full aspect-square border rounded-lg overflow-hidden group shadow-2xs cursor-grab active:cursor-grabbing transition-all select-none ${
+                                    isDragging
+                                      ? 'opacity-40 border-dashed border-2 border-[#32589c] scale-95'
+                                      : isDragOver
+                                      ? 'border-2 border-[#32589c] ring-2 ring-blue-200 scale-105 shadow-md'
+                                      : 'border-gray-200 hover:border-gray-300'
+                                  }`}
+                                  style={{ backgroundColor: currentColor }}
+                                  title="Drag to reorder placement"
+                                >
+                                  <img src={imgUrl} alt={`Product image ${idx + 1}`} className="w-full h-full object-contain p-2 pointer-events-none" />
+                                  
+                                  {/* Badge */}
+                                  <div className="absolute top-1 left-1 pointer-events-none">
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                      idx === 0
+                                        ? 'bg-[#0a2766] text-white shadow-sm'
+                                        : 'bg-black/70 text-white'
+                                    }`}>
+                                      {idx === 0 ? 'Main' : `#${idx + 1}`}
+                                    </span>
+                                  </div>
+
+                                  {/* Drag Overlay & Quick Actions */}
+                                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-1.5">
+                                    <div className="flex justify-between items-center text-white">
+                                      <span className="text-[10px] font-medium flex items-center gap-0.5 text-white/90">
+                                        <GripVertical size={12} /> Drag
+                                      </span>
+                                      <button 
+                                        type="button" 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setExistingImages(existingImages.filter((_, i) => i !== idx));
+                                          setImageBgColors(imageBgColors.filter((_, i) => i !== idx));
+                                        }} 
+                                        className="text-white hover:text-red-400 p-0.5 transition-colors cursor-pointer" 
+                                        title="Remove Image"
+                                      >
+                                        <Trash2 size={14} />
+                                      </button>
+                                    </div>
+                                    
+                                    {/* Quick Left/Right Arrow buttons */}
+                                    <div className="flex justify-center gap-2 text-white">
+                                      <button
+                                        type="button"
+                                        disabled={idx === 0}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          moveImage(idx, idx - 1);
+                                        }}
+                                        className={`px-1.5 py-0.5 rounded bg-white/20 hover:bg-white/40 text-white text-xs ${idx === 0 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
+                                        title="Move Left"
+                                      >
+                                        &larr;
+                                      </button>
+                                      <button
+                                        type="button"
+                                        disabled={idx === existingImages.length - 1}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          moveImage(idx, idx + 1);
+                                        }}
+                                        className={`px-1.5 py-0.5 rounded bg-white/20 hover:bg-white/40 text-white text-xs ${idx === existingImages.length - 1 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
+                                        title="Move Right"
+                                      >
+                                        &rarr;
+                                      </button>
+                                    </div>
+                                  </div>
                                 </div>
 
-                                {/* Drag Overlay & Quick Actions */}
-                                <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-1">
-                                  <div className="flex justify-between items-center text-white">
-                                    <span className="text-[10px] font-medium flex items-center gap-0.5 text-white/90">
-                                      <GripVertical size={12} /> Drag
-                                    </span>
-                                    <button 
-                                      type="button" 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setExistingImages(existingImages.filter((_, i) => i !== idx));
-                                      }} 
-                                      className="text-white hover:text-red-400 p-0.5 transition-colors cursor-pointer" 
-                                      title="Remove Image"
-                                    >
-                                      <Trash2 size={14} />
-                                    </button>
+                                {/* Per-Image Background Color Controls */}
+                                <div className="w-full flex flex-col gap-1 pt-1 border-t border-gray-100">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-[10px] font-bold text-gray-500 uppercase">Bg Color</span>
                                   </div>
-                                  
-                                  {/* Quick Left/Right Arrow buttons */}
-                                  <div className="flex justify-center gap-2 text-white">
-                                    <button
-                                      type="button"
-                                      disabled={idx === 0}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        moveImage(idx, idx - 1);
-                                      }}
-                                      className={`px-1.5 py-0.5 rounded bg-white/20 hover:bg-white/40 text-white text-xs ${idx === 0 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
-                                      title="Move Left"
-                                    >
-                                      &larr;
-                                    </button>
-                                    <button
-                                      type="button"
-                                      disabled={idx === existingImages.length - 1}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        moveImage(idx, idx + 1);
-                                      }}
-                                      className={`px-1.5 py-0.5 rounded bg-white/20 hover:bg-white/40 text-white text-xs ${idx === existingImages.length - 1 ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
-                                      title="Move Right"
-                                    >
-                                      &rarr;
-                                    </button>
+
+                                  <div className="flex items-center gap-1 w-full">
+                                    <input
+                                      type="color"
+                                      value={/^#[0-9A-Fa-f]{6}$/.test(currentColor) ? currentColor : '#f4f5f9'}
+                                      onChange={(e) => handleImageBgColorChange(idx, e.target.value)}
+                                      className="w-6 h-6 p-0 border border-gray-300 rounded cursor-pointer flex-shrink-0 bg-transparent shadow-2xs"
+                                      title={`Pick color for Image #${idx + 1}`}
+                                    />
+                                    <div className="flex items-center flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded px-1 py-0.5 focus-within:ring-1 focus-within:ring-[#32589c] focus-within:bg-white">
+                                      <span className="text-[10px] text-gray-400 font-mono select-none">#</span>
+                                      <input
+                                        type="text"
+                                        value={currentColor.replace(/^#/, '')}
+                                        onChange={(e) => {
+                                          const val = e.target.value.replace(/[^0-9A-Fa-f]/g, '').slice(0, 8);
+                                          handleImageBgColorChange(idx, val ? `#${val}` : '');
+                                        }}
+                                        placeholder="f4f5f9"
+                                        className="w-full text-[10px] font-mono uppercase bg-transparent focus:outline-none pl-0.5 text-gray-800"
+                                        maxLength={8}
+                                        title={`Enter hex for Image #${idx + 1}`}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Quick mini-palette swatches */}
+                                  <div className="flex items-center justify-between gap-0.5 pt-0.5">
+                                    {[
+                                      { hex: '#f4f5f9', title: 'Default Soft (#f4f5f9)' },
+                                      { hex: '#ffffff', title: 'White (#ffffff)' },
+                                      { hex: '#f8f9fa', title: 'Light Gray (#f8f9fa)' },
+                                      { hex: '#eef4ff', title: 'Soft Blue (#eef4ff)' },
+                                      { hex: '#111827', title: 'Dark (#111827)' }
+                                    ].map((preset) => (
+                                      <button
+                                        key={preset.hex}
+                                        type="button"
+                                        onClick={() => handleImageBgColorChange(idx, preset.hex)}
+                                        className={`w-3.5 h-3.5 rounded-full border transition-all cursor-pointer ${
+                                          currentColor.toLowerCase() === preset.hex.toLowerCase()
+                                            ? 'ring-1 ring-[#0a2766] border-white scale-110 shadow-xs'
+                                            : 'border-gray-300 hover:scale-115'
+                                        }`}
+                                        style={{ backgroundColor: preset.hex }}
+                                        title={preset.title}
+                                      />
+                                    ))}
                                   </div>
                                 </div>
                               </div>
                             );
                           })}
                         </div>
-                        <p className="text-[11px] text-gray-500 mt-2">
-                          Tip: The <span className="font-semibold text-[#0a2766]">Main</span> image (#1) is shown on product cards and search results. Drag any image to the 1st position to make it the primary cover image.
+                        <p className="text-[11px] text-gray-500 mt-2.5">
+                          Tip: The <span className="font-semibold text-[#0a2766]">Main</span> image (#1) is shown as the primary cover. Each image has its own hex code and color picker. Drag cards to reorder.
                         </p>
                       </div>
                     )}
-
                     <input type="file" required={!editingProductId && existingImages.length === 0} multiple accept="image/*" onChange={e => {
-                      if (e.target.files) setImageFiles(Array.from(e.target.files));
+                      if (e.target.files) { const files = Array.from(e.target.files); setImageFiles(files); setNewImageBgColors(files.map(() => "#f4f5f9")); }
                     }} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#e6f0ff] file:text-[#0a2766] hover:file:bg-[#d0e3ff]" />
-                    {imageFiles.length > 0 && <p className="text-xs text-[#0a2766] mt-2 font-medium">Ready to upload {imageFiles.length} new file(s).</p>}
+
+                    {imageFiles.length > 0 && (
+                      <div className="mt-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-xs text-[#0a2766] font-semibold">New image(s) ready to upload ({imageFiles.length}) — set custom bg color for each:</p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImageFiles([]);
+                              setNewImageBgColors([]);
+                            }}
+                            className="text-[11px] text-red-500 hover:text-red-700 hover:underline cursor-pointer"
+                          >
+                            Clear Selection
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-3">
+                          {imageFiles.map((file, fIdx) => {
+                            const fileColor = newImageBgColors[fIdx] || '#f4f5f9';
+                            return (
+                              <div key={fIdx} className="flex flex-col items-center gap-1.5 p-2 bg-white rounded-xl border border-gray-200 shadow-xs w-[125px]">
+                                <div
+                                  className="relative w-full aspect-square rounded-lg border border-gray-200 overflow-hidden shadow-2xs flex items-center justify-center p-1"
+                                  style={{ backgroundColor: fileColor }}
+                                >
+                                  <img
+                                    src={URL.createObjectURL(file)}
+                                    alt={file.name}
+                                    className="w-full h-full object-contain pointer-events-none"
+                                  />
+                                  <span className="absolute bottom-0 inset-x-0 bg-black/60 text-[9px] text-white text-center py-0.5 truncate px-1">
+                                    {file.name}
+                                  </span>
+                                </div>
+
+                                <div className="w-full flex items-center gap-1 pt-1 border-t border-gray-100">
+                                  <input
+                                    type="color"
+                                    value={/^#[0-9A-Fa-f]{6}$/.test(fileColor) ? fileColor : '#f4f5f9'}
+                                    onChange={(e) => handleNewImageBgColorChange(fIdx, e.target.value)}
+                                    className="w-6 h-6 p-0 border border-gray-300 rounded cursor-pointer bg-transparent shadow-2xs"
+                                    title={`Pick color for ${file.name}`}
+                                  />
+                                  <div className="flex items-center flex-1 min-w-0 bg-gray-50 border border-gray-200 rounded px-1 py-0.5">
+                                    <span className="text-[10px] text-gray-400 font-mono select-none">#</span>
+                                    <input
+                                      type="text"
+                                      value={fileColor.replace(/^#/, '')}
+                                      onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9A-Fa-f]/g, '').slice(0, 8);
+                                        handleNewImageBgColorChange(fIdx, val ? `#${val}` : '');
+                                      }}
+                                      placeholder="f4f5f9"
+                                      className="w-full text-[10px] font-mono uppercase bg-transparent focus:outline-none pl-0.5 text-gray-800"
+                                      maxLength={8}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div>

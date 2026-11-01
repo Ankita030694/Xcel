@@ -712,7 +712,10 @@ export default function ProductDetailPage() {
           {/* Left: Image Gallery */}
           <div className="w-full sm:w-[80%] md:w-[65%] lg:w-[45%] xl:w-[40%] mx-auto lg:mx-0 flex flex-col shrink-0">
             {/* Main Image */}
-            <div className="relative w-full aspect-square bg-[#f4f5f9] rounded-2xl sm:rounded-3xl lg:rounded-[32px] flex items-center justify-center p-4 sm:p-6 md:p-8 lg:p-10 mb-6 overflow-hidden border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)]">
+            <div 
+              className="relative w-full aspect-square rounded-2xl sm:rounded-3xl lg:rounded-[32px] flex items-center justify-center p-4 sm:p-6 md:p-8 lg:p-10 mb-6 overflow-hidden border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-colors duration-300"
+              style={{ backgroundColor: (Array.isArray(product.imageBgColors) && product.imageBgColors[activeImageIndex]) || product.imageBgColor || '#f4f5f9' }}
+            >
               <img 
                 src={productImages[activeImageIndex] || '/placeholder.png'} 
                 alt={product.name} 
@@ -747,12 +750,15 @@ export default function ProductDetailPage() {
                       key={idx}
                       type="button"
                       onClick={() => scrollToThumbnail(idx)}
-                      className={`relative aspect-square shrink-0 rounded-xl sm:rounded-2xl overflow-hidden transition-all bg-[#f4f5f9] snap-start border-2 cursor-pointer ${
+                      className={`relative aspect-square shrink-0 rounded-xl sm:rounded-2xl overflow-hidden transition-all snap-start border-2 cursor-pointer ${
                         activeImageIndex === idx 
                           ? 'border-[#0a2766] opacity-100 shadow-sm' 
                           : 'border-transparent opacity-70 hover:opacity-100 hover:border-gray-200'
                       }`}
-                      style={{ width: 'calc((100% - 30px) / 4)' }}
+                      style={{ 
+                        width: 'calc((100% - 30px) / 4)',
+                        backgroundColor: (Array.isArray(product.imageBgColors) && product.imageBgColors[idx]) || product.imageBgColor || '#f4f5f9'
+                      }}
                       aria-label={`View image ${idx + 1}`}
                     >
                       <img 
@@ -1028,11 +1034,14 @@ export default function ProductDetailPage() {
                     className="group flex flex-col w-[260px] xs:w-[280px] sm:w-[310px] md:w-[320px] shrink-0 bg-white rounded-2xl border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_28px_rgba(10,39,102,0.1)] hover:-translate-y-1.5 transition-all duration-300 overflow-hidden snap-start cursor-pointer"
                   >
                     {/* Product Image */}
-                    <div className="relative w-full h-[180px] sm:h-[200px] bg-[#f8f9fc] p-4 flex items-center justify-center overflow-hidden border-b border-gray-50">
+                    <div 
+                      className="relative w-full h-[180px] sm:h-[200px] bg-[#f8f9fc] p-4 flex items-center justify-center overflow-hidden border-b border-gray-50"
+                      style={{ backgroundColor: (Array.isArray(relProd.imageBgColors) && relProd.imageBgColors[0]) || relProd.imageBgColor || '#f8f9fc' }}
+                    >
                       <img
                         src={prodImg}
                         alt={relProd.name}
-                        className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300"
+                        className={`w-full h-full object-contain ${(Array.isArray(relProd.imageBgColors) && relProd.imageBgColors[0]) || relProd.imageBgColor ? 'mix-blend-normal' : 'mix-blend-multiply'} group-hover:scale-105 transition-transform duration-300`}
                         loading="lazy"
                         decoding="async"
                       />

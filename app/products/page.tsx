@@ -530,13 +530,16 @@ export default function ProductsPage() {
                 >
                 
                 {/* Product Image */}
-                <div className="w-[42%] sm:w-[44%] md:w-[45%] xl:w-full h-full xl:h-[260px] bg-[#f8f9fa] xl:bg-white p-3 sm:p-4 md:p-5 xl:p-6 relative flex items-center justify-center flex-shrink-0 xl:border-b xl:border-gray-50">
+                <div 
+                  className="w-[42%] sm:w-[44%] md:w-[45%] xl:w-full h-full xl:h-[260px] bg-[#f8f9fa] xl:bg-white p-3 sm:p-4 md:p-5 xl:p-6 relative flex items-center justify-center flex-shrink-0 xl:border-b xl:border-gray-50"
+                  style={{ backgroundColor: (Array.isArray(product.imageBgColors) && product.imageBgColors[0]) || product.imageBgColor || undefined }}
+                >
                   <img 
                     src={product.imageUrl || '/placeholder.png'} 
                     alt={product.name} 
                     loading="lazy"
                     decoding="async"
-                    className="w-full h-full object-contain mix-blend-multiply xl:mix-blend-normal" 
+                    className={`w-full h-full object-contain ${(Array.isArray(product.imageBgColors) && product.imageBgColors[0]) || product.imageBgColor ? 'mix-blend-normal' : 'mix-blend-multiply xl:mix-blend-normal'}`} 
                   />
                 </div>
 
