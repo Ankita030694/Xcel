@@ -210,6 +210,9 @@ export default function AdminBlogsPage() {
 
   // UI helpers
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [showCoverUrlInput, setShowCoverUrlInput] = useState(false);
+  const [showBannerUrlInput, setShowBannerUrlInput] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [hasDraft, setHasDraft] = useState(false);
@@ -217,6 +220,7 @@ export default function AdminBlogsPage() {
   const [showSeoAccordion, setShowSeoAccordion] = useState(false);
 
   const coverFileRef = useRef<HTMLInputElement>(null);
+  const bannerFileRef = useRef<HTMLInputElement>(null);
   const draftStorageKey = editingBlogId ? `xcel_blog_draft_${editingBlogId}` : "xcel_blog_draft_new";
 
   const showToast = (text: string, type: "success" | "error" | "info" = "success") => {
@@ -314,6 +318,8 @@ export default function AdminBlogsPage() {
     setLead("");
     setCoverImage("");
     setBannerImage("");
+    setShowCoverUrlInput(false);
+    setShowBannerUrlInput(false);
     setDescription("");
     setShortVersionPoints([
       "Industrial equipment sizing requires analyzing daily linen throughput in kg and shift turnaround times.",
@@ -354,6 +360,8 @@ export default function AdminBlogsPage() {
     setLead(blog.lead || "");
     setCoverImage(blog.imageSrc || "");
     setBannerImage(blog.bannerSrc || "");
+    setShowCoverUrlInput(false);
+    setShowBannerUrlInput(false);
     setDescription(convertSectionsToHtml(blog));
     setShortVersionPoints(blog.shortVersion && blog.shortVersion.length > 0 ? blog.shortVersion : []);
     setActionSteps(blog.actionSteps && blog.actionSteps.length > 0 ? blog.actionSteps : DEFAULT_ACTION_STEPS);
@@ -509,7 +517,26 @@ export default function AdminBlogsPage() {
     }
   };
 
-  // 10. Auto-extract Short Version points from TipTap HTML
+  // 10. Inside Blog Hero Banner Upload (with Canvas auto-compression)
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploadingBanner(true);
+      const url = await uploadBlogImage(file, "blog-banners");
+      setBannerImage(url);
+      showToast("Inside hero banner compressed and uploaded.", "success");
+    } catch (err) {
+      console.error("Error uploading hero banner:", err);
+      showToast("Failed to upload hero banner. Please check your connection.", "error");
+    } finally {
+      setIsUploadingBanner(false);
+      if (bannerFileRef.current) bannerFileRef.current.value = "";
+    }
+  };
+
+  // 11. Auto-extract Short Version points from TipTap HTML
   const handleAutoExtractShortVersion = () => {
     if (!description.trim()) {
       showToast("Add article content first to extract summary points.", "error");
@@ -959,11 +986,25 @@ export default function AdminBlogsPage() {
 
             {/* Right Settings Sidebar (Sticky alongside the editorial body) */}
             <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-6 lg:max-h-[calc(100vh-3rem)] lg:overflow-y-auto custom-scrollbar pr-1 pb-4">
-              {/* Cover Image Upload Card */}
+              {/* Section 1: Blog Card Image (1:1 Ratio) */}
               <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#0a2766]">
-                  Featured Cover Image
-                </h4>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#0a2766]">
+                      1. Blog Card Image
+                    </h4>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      1:1 Square &bull; Rec: 1080 &times; 1080 px
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                    Listing Cards
+                  </span>
+                </div>
+
+                <p className="text-xs text-gray-500">
+                  Featured on the blog catalog listing cards, mobile article header, and related post widgets.
+                </p>
 
                 <input
                   ref={coverFileRef}
@@ -975,572 +1016,721 @@ export default function AdminBlogsPage() {
 
                 {coverImage ? (
                   <div className="space-y-2.5">
-                    <div className="relative w-full aspect-square rounded border border-gray-200 overflow-hidden bg-gray-50">
-                      <img
-                        src={coverImage}
-                        alt="Cover Preview"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <button
-                        type="button"
-                        onClick={() => coverFileRef.current?.click()}
-                        className="text-[#32589c] hover:underline font-semibold cursor-pointer"
-                      >
-                        Change Image
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setCoverImage("")}
-                        className="text-red-500 hover:underline font-semibold cursor-pointer"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => coverFileRef.current?.click()}
-                    disabled={isUploadingCover}
-                    className="w-full aspect-square rounded border-2 border-dashed border-gray-300 hover:border-[#32589c] bg-gray-50 hover:bg-white flex flex-col items-center justify-center text-gray-500 hover:text-[#0a2766] transition-all p-4 cursor-pointer"
-                  >
-                    {isUploadingCover ? (
-                      <div className="flex flex-col items-center gap-2">
-                        <Loader2 size={24} className="animate-spin text-[#32589c]" />
-                        <span className="text-xs font-medium">Compressing Image...</span>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-2 text-center">
-                        <ImageIcon size={28} className="text-[#32589c]" />
-                        <span className="text-xs font-bold text-[#0a2766]">Upload Cover Image</span>
-                        <span className="text-[11px] text-gray-400">
-                          Auto-compressed via Canvas to WebP
-                        </span>
-                      </div>
-                    )}
-                  </button>
-                )}
-              </div>
-
-              {/* Metadata Card */}
-              <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm space-y-3.5">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[#0a2766]">
-                  Article Metadata
-                </h4>
-
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-xs font-semibold text-gray-700">Category</label>
-                    {!isCustomCategory ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsCustomCategory(true);
-                          setCustomCategory("");
-                        }}
-                        className="text-[11px] font-bold text-[#32589c] hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        <Plus className="w-3 h-3" />
-                        <span>Add Custom Category</span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setIsCustomCategory(false);
-                          setCustomCategory("");
-                          setCategory(allCategories[0] || DEFAULT_CATEGORIES[0]);
-                        }}
-                        className="text-[11px] font-bold text-gray-500 hover:text-gray-700 hover:underline flex items-center gap-1 cursor-pointer"
-                      >
-                        <span>Choose from list</span>
-                      </button>
-                    )}
-                  </div>
-
-                  {!isCustomCategory ? (
-                    <select
-                      value={category}
-                      onChange={(e) => {
-                        if (e.target.value === "__add_custom__") {
-                          setIsCustomCategory(true);
-                          setCustomCategory("");
-                        } else {
-                          setCategory(e.target.value);
-                        }
-                      }}
-                      className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-gray-800 font-medium focus:outline-none focus:border-[#32589c]"
-                    >
-                      {allCategories.map((cat) => (
-                        <option key={cat} value={cat}>
-                          {cat}
-                        </option>
-                      ))}
-                      <option value="__add_custom__" className="font-bold text-[#0a2766]">
-                        + Add Custom Category...
-                      </option>
-                    </select>
-                  ) : (
-                    <div className="space-y-1.5">
-                      <div className="relative flex items-center">
-                        <input
-                          type="text"
-                          value={customCategory}
-                          onChange={(e) => setCustomCategory(e.target.value)}
-                          placeholder="Type custom category name..."
-                          className="w-full border-2 border-[#32589c] bg-blue-50/20 rounded px-3 py-1.5 text-sm text-gray-800 font-medium focus:outline-none focus:ring-1 focus:ring-[#32589c]"
-                          autoFocus
+                      <div className="relative w-full aspect-square rounded-lg border border-gray-200 overflow-hidden bg-gray-50 shadow-inner">
+                        <img
+                          src={coverImage}
+                          alt="Card Preview"
+                          className="w-full h-full object-cover"
                         />
-                        {customCategory && (
+                      </div>
+                        <div className="flex items-center justify-between text-xs pt-1">
                           <button
                             type="button"
-                            onClick={() => setCustomCategory("")}
-                            className="absolute right-2 text-gray-400 hover:text-gray-600 cursor-pointer"
-                            title="Clear"
+                            onClick={() => coverFileRef.current?.click()}
+                            className="text-[#32589c] hover:underline font-semibold cursor-pointer"
                           >
-                            <X className="w-4 h-4" />
+                            Change Image
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowCoverUrlInput(!showCoverUrlInput)}
+                            className="text-gray-500 hover:text-gray-700 hover:underline cursor-pointer"
+                          >
+                            {showCoverUrlInput ? "Hide Path" : "Direct Path / URL"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCoverImage("")}
+                            className="text-red-500 hover:underline font-semibold cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                      ) : (
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => coverFileRef.current?.click()}
+                          disabled={isUploadingCover}
+                          className="w-full aspect-square rounded-lg border-2 border-dashed border-gray-300 hover:border-[#32589c] bg-gray-50 hover:bg-white flex flex-col items-center justify-center text-gray-500 hover:text-[#0a2766] transition-all p-4 cursor-pointer"
+                        >
+                          {isUploadingCover ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <Loader2 size={24} className="animate-spin text-[#32589c]" />
+                              <span className="text-xs font-medium">Compressing Image...</span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-2 text-center">
+                              <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-[#32589c]">
+                                <ImageIcon size={24} />
+                              </div>
+                              <span className="text-xs font-bold text-[#0a2766]">Upload Card Image (1:1)</span>
+                              <span className="text-[11px] text-gray-400">
+                                Square 1080 &times; 1080 px (WebP Compressed)
+                              </span>
+                            </div>
+                          )}
+                        </button>
+                        <div className="text-center pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setShowCoverUrlInput(!showCoverUrlInput)}
+                            className="text-[11px] text-[#32589c] hover:underline font-medium cursor-pointer"
+                          >
+                            {showCoverUrlInput ? "Hide path/URL input" : "Or enter custom path / URL"}
+                          </button>
+                        </div>
+                      </div>
+                )}
+
+                      {showCoverUrlInput && (
+                        <div className="pt-2 border-t border-gray-100 space-y-1">
+                          <label className="block text-[11px] font-semibold text-gray-600">
+                            Card Image URL or /public path
+                          </label>
+                          <input
+                            type="text"
+                            value={coverImage}
+                            onChange={(e) => setCoverImage(e.target.value)}
+                            placeholder="e.g. /blog1/Blog 1- 1080 x 1080.svg or https://..."
+                            className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-700 focus:outline-none focus:border-[#32589c]"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Section 2: Inside Blog Hero Banner (8:3 Ratio) */}
+                    <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h4 className="text-xs font-bold uppercase tracking-wider text-[#0a2766]">
+                            2. Inside Blog Hero Banner
+                          </h4>
+                          <p className="text-[11px] text-gray-500 mt-0.5">
+                            8:3 Wide Banner &bull; Rec: 1600 &times; 600 px
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                          Desktop Hero
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-gray-500">
+                        Featured across the full width of the article page header on desktop screens.
+                      </p>
+
+                      <input
+                        ref={bannerFileRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBannerUpload}
+                        className="hidden"
+                      />
+
+                      {bannerImage ? (
+                        <div className="space-y-2.5">
+                          <div className="relative w-full aspect-[16/6] rounded-lg border border-gray-200 overflow-hidden bg-gray-50 shadow-inner">
+                            <img
+                              src={bannerImage}
+                              alt="Hero Banner Preview"
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-xs pt-1">
+                            <button
+                              type="button"
+                              onClick={() => bannerFileRef.current?.click()}
+                              className="text-[#32589c] hover:underline font-semibold cursor-pointer"
+                            >
+                              Change Banner
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setShowBannerUrlInput(!showBannerUrlInput)}
+                              className="text-gray-500 hover:text-gray-700 hover:underline cursor-pointer"
+                            >
+                              {showBannerUrlInput ? "Hide Path" : "Direct Path / URL"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setBannerImage("")}
+                              className="text-red-500 hover:underline font-semibold cursor-pointer"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => bannerFileRef.current?.click()}
+                            disabled={isUploadingBanner}
+                            className="w-full aspect-[16/6] rounded-lg border-2 border-dashed border-gray-300 hover:border-[#32589c] bg-gray-50 hover:bg-white flex flex-col items-center justify-center text-gray-500 hover:text-[#0a2766] transition-all p-3 cursor-pointer"
+                          >
+                            {isUploadingBanner ? (
+                              <div className="flex flex-col items-center gap-1.5">
+                                <Loader2 size={22} className="animate-spin text-[#32589c]" />
+                                <span className="text-xs font-medium">Compressing Banner...</span>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center gap-1 text-center">
+                                <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-700">
+                                  <ImageIcon size={20} />
+                                </div>
+                                <span className="text-xs font-bold text-[#0a2766]">Upload Hero Banner (1600&times;600)</span>
+                                <span className="text-[11px] text-gray-400">
+                                  Desktop In-Article Top Banner
+                                </span>
+                              </div>
+                            )}
+                          </button>
+                          <p className="text-[11px] text-gray-400 text-center italic">
+                            Optional &bull; Automatically falls back to Card Image if empty
+                          </p>
+                          <div className="text-center pt-0.5">
+                            <button
+                              type="button"
+                              onClick={() => setShowBannerUrlInput(!showBannerUrlInput)}
+                              className="text-[11px] text-[#32589c] hover:underline font-medium cursor-pointer"
+                            >
+                              {showBannerUrlInput ? "Hide path/URL input" : "Or enter custom path / URL"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {showBannerUrlInput && (
+                        <div className="pt-2 border-t border-gray-100 space-y-1">
+                          <label className="block text-[11px] font-semibold text-gray-600">
+                            Banner Image URL or /public path
+                          </label>
+                          <input
+                            type="text"
+                            value={bannerImage}
+                            onChange={(e) => setBannerImage(e.target.value)}
+                            placeholder="e.g. /blog1/Blog 1- 1600 x 600.svg or https://..."
+                            className="w-full border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-700 focus:outline-none focus:border-[#32589c]"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Metadata Card */}
+                    <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm space-y-3.5">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-[#0a2766]">
+                        Article Metadata
+                      </h4>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="block text-xs font-semibold text-gray-700">Category</label>
+                          {!isCustomCategory ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCustomCategory(true);
+                                setCustomCategory("");
+                              }}
+                              className="text-[11px] font-bold text-[#32589c] hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              <Plus className="w-3 h-3" />
+                              <span>Add Custom Category</span>
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsCustomCategory(false);
+                                setCustomCategory("");
+                                setCategory(allCategories[0] || DEFAULT_CATEGORIES[0]);
+                              }}
+                              className="text-[11px] font-bold text-gray-500 hover:text-gray-700 hover:underline flex items-center gap-1 cursor-pointer"
+                            >
+                              <span>Choose from list</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {!isCustomCategory ? (
+                          <select
+                            value={category}
+                            onChange={(e) => {
+                              if (e.target.value === "__add_custom__") {
+                                setIsCustomCategory(true);
+                                setCustomCategory("");
+                              } else {
+                                setCategory(e.target.value);
+                              }
+                            }}
+                            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-gray-800 font-medium focus:outline-none focus:border-[#32589c]"
+                          >
+                            {allCategories.map((cat) => (
+                              <option key={cat} value={cat}>
+                                {cat}
+                              </option>
+                            ))}
+                            <option value="__add_custom__" className="font-bold text-[#0a2766]">
+                              + Add Custom Category...
+                            </option>
+                          </select>
+                        ) : (
+                          <div className="space-y-1.5">
+                            <div className="relative flex items-center">
+                              <input
+                                type="text"
+                                value={customCategory}
+                                onChange={(e) => setCustomCategory(e.target.value)}
+                                placeholder="Type custom category name..."
+                                className="w-full border-2 border-[#32589c] bg-blue-50/20 rounded px-3 py-1.5 text-sm text-gray-800 font-medium focus:outline-none focus:ring-1 focus:ring-[#32589c]"
+                                autoFocus
+                              />
+                              {customCategory && (
+                                <button
+                                  type="button"
+                                  onClick={() => setCustomCategory("")}
+                                  className="absolute right-2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                                  title="Clear"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-[11px] text-gray-500">
+                              This category will be saved with the article and added to the category filter pills.
+                            </p>
+                          </div>
                         )}
                       </div>
-                      <p className="text-[11px] text-gray-500">
-                        This category will be saved with the article and added to the category filter pills.
-                      </p>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Author Profile</label>
+                        <select
+                          value={selectedAuthor}
+                          onChange={(e) => handleAuthorChange(e.target.value)}
+                          className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-gray-800 font-medium focus:outline-none focus:border-[#32589c]"
+                        >
+                          {AUTHOR_PROFILES.map((a) => (
+                            <option key={a.name} value={a.name}>
+                              {a.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">Date</label>
+                        <input
+                          type="text"
+                          value={publishDate}
+                          onChange={(e) => setPublishDate(e.target.value)}
+                          placeholder="e.g. 10th May 2026"
+                          className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:border-[#32589c]"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-semibold text-gray-700">URL Slug</label>
+                          <button
+                            type="button"
+                            onClick={() => setIsSlugManual(!isSlugManual)}
+                            className="text-[11px] text-[#32589c] hover:underline"
+                          >
+                            {isSlugManual ? "Auto-generate" : "Custom"}
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={slug}
+                          onChange={(e) => {
+                            setIsSlugManual(true);
+                            setSlug(e.target.value);
+                          }}
+                          placeholder="url-slug-of-article"
+                          className="w-full border border-gray-300 rounded px-3 py-1.5 text-xs font-mono text-gray-800 focus:outline-none focus:border-[#32589c]"
+                        />
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Author Profile</label>
-                  <select
-                    value={selectedAuthor}
-                    onChange={(e) => handleAuthorChange(e.target.value)}
-                    className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-gray-800 font-medium focus:outline-none focus:border-[#32589c]"
-                  >
-                    {AUTHOR_PROFILES.map((a) => (
-                      <option key={a.name} value={a.name}>
-                        {a.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    {/* The Short Version Box */}
+                    <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-[#0a2766]">
+                          The Short Version
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={handleAutoExtractShortVersion}
+                          className="text-xs text-[#32589c] hover:underline font-bold flex items-center gap-1 cursor-pointer"
+                        >
+                          <Sparkles size={12} />
+                          <span>Auto-Extract</span>
+                        </button>
+                      </div>
+                      <p className="text-[11px] text-gray-500">
+                        3–4 takeaway points displayed in Xcel&apos;s sticky left sidebar.
+                      </p>
 
-                <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Date</label>
-                  <input
-                    type="text"
-                    value={publishDate}
-                    onChange={(e) => setPublishDate(e.target.value)}
-                    placeholder="e.g. 10th May 2026"
-                    className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:border-[#32589c]"
-                  />
-                </div>
+                      <div className="space-y-2">
+                        {shortVersionPoints.map((point, idx) => (
+                          <div key={idx} className="flex items-center gap-1.5">
+                            <input
+                              type="text"
+                              value={point}
+                              onChange={(e) => {
+                                const copy = [...shortVersionPoints];
+                                copy[idx] = e.target.value;
+                                setShortVersionPoints(copy);
+                              }}
+                              className="flex-1 border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-700 focus:outline-none focus:border-[#32589c]"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShortVersionPoints(shortVersionPoints.filter((_, i) => i !== idx))}
+                              className="p-1 text-gray-400 hover:text-red-500 rounded"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        ))}
 
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-semibold text-gray-700">URL Slug</label>
-                    <button
-                      type="button"
-                      onClick={() => setIsSlugManual(!isSlugManual)}
-                      className="text-[11px] text-[#32589c] hover:underline"
-                    >
-                      {isSlugManual ? "Auto-generate" : "Custom"}
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    value={slug}
-                    onChange={(e) => {
-                      setIsSlugManual(true);
-                      setSlug(e.target.value);
-                    }}
-                    placeholder="url-slug-of-article"
-                    className="w-full border border-gray-300 rounded px-3 py-1.5 text-xs font-mono text-gray-800 focus:outline-none focus:border-[#32589c]"
-                  />
-                </div>
-              </div>
+                        <button
+                          type="button"
+                          onClick={() => setShortVersionPoints([...shortVersionPoints, ""])}
+                          className="text-xs font-semibold text-[#32589c] hover:underline flex items-center gap-1 pt-1"
+                        >
+                          <Plus size={12} /> Add point
+                        </button>
+                      </div>
+                    </div>
 
-              {/* The Short Version Box */}
-              <div className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#0a2766]">
-                    The Short Version
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={handleAutoExtractShortVersion}
-                    className="text-xs text-[#32589c] hover:underline font-bold flex items-center gap-1 cursor-pointer"
-                  >
-                    <Sparkles size={12} />
-                    <span>Auto-Extract</span>
-                  </button>
-                </div>
-                <p className="text-[11px] text-gray-500">
-                  3–4 takeaway points displayed in Xcel&apos;s sticky left sidebar.
-                </p>
-
-                <div className="space-y-2">
-                  {shortVersionPoints.map((point, idx) => (
-                    <div key={idx} className="flex items-center gap-1.5">
-                      <input
-                        type="text"
-                        value={point}
-                        onChange={(e) => {
-                          const copy = [...shortVersionPoints];
-                          copy[idx] = e.target.value;
-                          setShortVersionPoints(copy);
-                        }}
-                        className="flex-1 border border-gray-300 rounded px-2.5 py-1.5 text-xs text-gray-700 focus:outline-none focus:border-[#32589c]"
-                      />
+                    {/* SEO Collapsible */}
+                    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
                       <button
                         type="button"
-                        onClick={() => setShortVersionPoints(shortVersionPoints.filter((_, i) => i !== idx))}
-                        className="p-1 text-gray-400 hover:text-red-500 rounded"
+                        onClick={() => setShowSeoAccordion(!showSeoAccordion)}
+                        className="w-full px-5 py-3.5 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
                       >
-                        <X size={14} />
+                        <span className="text-xs font-bold uppercase tracking-wider text-[#0a2766]">
+                          SEO & Meta Tags
+                        </span>
+                        <ChevronDown size={14} className={`text-gray-500 transition-transform ${showSeoAccordion ? "rotate-180" : ""}`} />
                       </button>
-                    </div>
-                  ))}
 
+                      {showSeoAccordion && (
+                        <div className="p-5 pt-0 space-y-3 border-t border-gray-100">
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Meta Title</label>
+                            <input
+                              type="text"
+                              value={metaTitle}
+                              onChange={(e) => setMetaTitle(e.target.value)}
+                              placeholder={calibrateMetaTitle(title) || "SEO Meta Title | XCEL STIRO"}
+                              className="w-full border border-gray-300 rounded px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-[#32589c]"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-gray-700 mb-1">Meta Description</label>
+                            <textarea
+                              rows={2}
+                              value={metaDescription}
+                              onChange={(e) => setMetaDescription(e.target.value)}
+                              placeholder={calibrateMetaDescription(description, title) || "Summary for search engines..."}
+                              className="w-full border border-gray-300 rounded px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-[#32589c] resize-none"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+          </div>
+            </div>
+          </div>
+          );
+  }
+
+          // =========================================================================
+          // VIEW: DASHBOARD LIST (Matching the exact Products Dashboard style!)
+          // =========================================================================
+          return (
+          <div className="min-h-screen bg-gray-50 p-6 md:p-10 font-sans">
+            {/* Toast Notification */}
+            {toastMessage && (
+              <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded bg-[#0a2766] text-white shadow-lg text-sm font-semibold">
+                <CheckCircle2 size={16} className="text-emerald-400" />
+                <span>{toastMessage.text}</span>
+              </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {blogToDelete && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+                <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl border border-gray-200 space-y-4">
+                  <div className="flex items-center gap-3 text-red-600">
+                    <Trash2 size={22} />
+                    <h3 className="font-bold text-lg text-gray-900">Delete Blog Article</h3>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    Are you sure you want to delete <strong className="text-gray-900">&ldquo;{blogToDelete.title}&rdquo;</strong>? This action cannot be undone.
+                  </p>
+                  <div className="flex items-center justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setBlogToDelete(null)}
+                      disabled={isDeleting}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmDelete}
+                      disabled={isDeleting}
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium shadow-sm transition-colors cursor-pointer"
+                    >
+                      {isDeleting ? "Deleting..." : "Confirm Delete"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="max-w-7xl mx-auto">
+              {/* Top Header Row matching Screenshot 1 */}
+              <div className="flex justify-between items-center mb-8">
+                <div>
+                  <h1 className="text-3xl font-bold text-[#0a2766]">Blogs Dashboard</h1>
+                  <p className="text-[#363636] mt-1">Manage your technical journal & blog articles</p>
+                </div>
+                <div className="flex items-center gap-6">
+                  <Link href="/admin/leads" className="text-[#32589c] hover:text-[#0a2766] font-semibold transition-colors">
+                    &larr; Back to Leads
+                  </Link>
+                  <Link href="/admin/products" className="text-[#32589c] hover:text-[#0a2766] font-semibold transition-colors">
+                    Manage Products &rarr;
+                  </Link>
                   <button
-                    type="button"
-                    onClick={() => setShortVersionPoints([...shortVersionPoints, ""])}
-                    className="text-xs font-semibold text-[#32589c] hover:underline flex items-center gap-1 pt-1"
+                    onClick={handleLogout}
+                    className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded shadow-sm hover:bg-gray-50 transition-colors text-sm font-medium cursor-pointer"
                   >
-                    <Plus size={12} /> Add point
+                    Logout
                   </button>
                 </div>
               </div>
 
-              {/* SEO Collapsible */}
-              <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setShowSeoAccordion(!showSeoAccordion)}
-                  className="w-full px-5 py-3.5 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
-                >
-                  <span className="text-xs font-bold uppercase tracking-wider text-[#0a2766]">
-                    SEO & Meta Tags
-                  </span>
-                  <ChevronDown size={14} className={`text-gray-500 transition-transform ${showSeoAccordion ? "rotate-180" : ""}`} />
-                </button>
-
-                {showSeoAccordion && (
-                  <div className="p-5 pt-0 space-y-3 border-t border-gray-100">
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Meta Title</label>
-                      <input
-                        type="text"
-                        value={metaTitle}
-                        onChange={(e) => setMetaTitle(e.target.value)}
-                        placeholder={calibrateMetaTitle(title) || "SEO Meta Title | XCEL STIRO"}
-                        className="w-full border border-gray-300 rounded px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-[#32589c]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-1">Meta Description</label>
-                      <textarea
-                        rows={2}
-                        value={metaDescription}
-                        onChange={(e) => setMetaDescription(e.target.value)}
-                        placeholder={calibrateMetaDescription(description, title) || "Summary for search engines..."}
-                        className="w-full border border-gray-300 rounded px-3 py-1.5 text-xs text-gray-800 focus:outline-none focus:border-[#32589c] resize-none"
-                      />
-                    </div>
+              {/* Action & Filter Bar matching Screenshot 1 */}
+              <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+                  {/* Filter Category */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-700">Filter Category:</span>
+                    <select
+                      value={selectedCategoryFilter}
+                      onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                      className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-gray-800 font-medium focus:outline-none focus:border-[#32589c]"
+                    >
+                      <option value="all">All Categories ({blogs.length})</option>
+                      {allCategories.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat} ({blogs.filter((b) => b.category?.toLowerCase() === cat.toLowerCase()).length})
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                )}
+
+                  {/* Status Filter */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-700">Status:</span>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value as any)}
+                      className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-gray-800 font-medium focus:outline-none focus:border-[#32589c]"
+                    >
+                      <option value="all">All ({blogs.length})</option>
+                      <option value="published">Published ({blogs.filter((b) => (b.status || "published") === "published").length})</option>
+                      <option value="draft">Drafts ({blogs.filter((b) => b.status === "draft").length})</option>
+                    </select>
+                  </div>
+
+                  {/* Quick Search */}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search title, slug..."
+                      className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#32589c] w-44 sm:w-56"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleOpenCreate}
+                    className="flex items-center gap-2 bg-[#32589c] text-white px-4 py-2 rounded shadow-md hover:bg-[#1f3a6a] transition-colors font-medium self-end sm:self-auto cursor-pointer"
+                  >
+                    <Plus size={18} /> Add New Blog
+                  </button>
+                </div>
               </div>
+
+              {/* Table matching Screenshot 1 */}
+              {loading ? (
+                <div className="text-center py-20 text-[#363636]">Loading blogs...</div>
+              ) : filteredBlogs.length === 0 ? (
+                <div className="bg-white rounded-lg shadow-sm p-10 text-center text-[#363636] border border-gray-200">
+                  No articles found. Click &quot;Add New Blog&quot; to create one.
+                </div>
+              ) : (
+                <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-[#f3f5f8] text-[#0a2766] border-b border-gray-200 text-sm">
+                          <th className="py-4 px-4 font-semibold text-center w-28">Sequence</th>
+                          <th className="py-4 px-4 font-semibold">Image</th>
+                          <th className="py-4 px-6 font-semibold">Name</th>
+                          <th className="py-4 px-6 font-semibold">Category</th>
+                          <th className="py-4 px-6 font-semibold">Descriptions</th>
+                          <th className="py-4 px-6 font-semibold text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm">
+                        {filteredBlogs.map((blog, idx) => {
+                          const isFirst = idx === 0;
+                          const isLast = idx === filteredBlogs.length - 1;
+
+                          return (
+                            <tr key={blog.id || blog.slug} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                              {/* Sequence */}
+                              <td className="py-4 px-4 text-center whitespace-nowrap">
+                                <div className="inline-flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
+                                  <span className={`font-bold px-2 py-0.5 rounded text-xs ${idx === 0
+                                      ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                      : idx < 3
+                                        ? 'bg-blue-50 text-[#0a2766] border border-blue-200'
+                                        : 'bg-gray-100 text-gray-700'
+                                    }`}>
+                                    #{idx + 1}
+                                  </span>
+                                  <div className="flex flex-col gap-0.5">
+                                    <button
+                                      type="button"
+                                      disabled={isFirst}
+                                      onClick={() => handleMoveBlog(idx, "up")}
+                                      className={`p-0.5 rounded transition-colors ${isFirst
+                                          ? 'text-gray-300 cursor-not-allowed'
+                                          : 'text-gray-600 hover:text-[#0a2766] hover:bg-blue-100 cursor-pointer'
+                                        }`}
+                                      title="Move Up"
+                                    >
+                                      <ArrowUp size={13} strokeWidth={2.5} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      disabled={isLast}
+                                      onClick={() => handleMoveBlog(idx, "down")}
+                                      className={`p-0.5 rounded transition-colors ${isLast
+                                          ? 'text-gray-300 cursor-not-allowed'
+                                          : 'text-gray-600 hover:text-[#0a2766] hover:bg-blue-100 cursor-pointer'
+                                        }`}
+                                      title="Move Down"
+                                    >
+                                      <ArrowDown size={13} strokeWidth={2.5} />
+                                    </button>
+                                  </div>
+                                </div>
+                              </td>
+
+                              {/* Image */}
+                              <td className="py-4 px-4">
+                                <img
+                                  src={blog.imageSrc || "/blog1/Blog 1- 1080 x 1080.svg"}
+                                  alt={blog.title}
+                                  className="w-16 h-16 object-cover bg-white border border-gray-200 rounded"
+                                />
+                              </td>
+
+                              {/* Name / Title */}
+                              <td className="py-4 px-6 font-medium text-gray-900">
+                                <div className="font-semibold text-gray-900 uppercase leading-snug">
+                                  {blog.title}
+                                </div>
+                                <div className="mt-1">
+                                  <a
+                                    href={`/blogs/${blog.slug}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 text-xs text-[#0a2766] hover:text-[#32589c] hover:underline font-mono bg-blue-50/80 px-2 py-0.5 rounded border border-blue-200 transition-colors"
+                                    title="Preview blog article"
+                                  >
+                                    <ExternalLink size={11} className="text-[#32589c]" />
+                                    /blogs/{blog.slug}
+                                  </a>
+                                </div>
+                              </td>
+
+                              {/* Category */}
+                              <td className="py-4 px-6 text-gray-700 whitespace-nowrap">
+                                {blog.category}
+                              </td>
+
+                              {/* Descriptions */}
+                              <td className="py-4 px-6 text-gray-700 max-w-sm space-y-1">
+                                {blog.lead && (
+                                  <div>
+                                    <span className="inline-block text-[10px] font-bold text-[#0a2766] bg-blue-50 px-1.5 py-0.5 rounded mr-1">
+                                      Subheading
+                                    </span>
+                                    <span className="text-xs text-gray-800 line-clamp-1">{blog.lead}</span>
+                                  </div>
+                                )}
+                                <div>
+                                  <span className="inline-block text-[10px] font-bold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded mr-1">
+                                    Detail
+                                  </span>
+                                  <span className="text-xs text-gray-600 line-clamp-1">
+                                    {blog.author} • {blog.date} ({blog.readTime})
+                                  </span>
+                                </div>
+                                {(blog.status === "draft") && (
+                                  <div>
+                                    <span className="inline-block text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
+                                      Draft
+                                    </span>
+                                  </div>
+                                )}
+                              </td>
+
+                              {/* Actions */}
+                              <td className="py-4 px-6 text-right whitespace-nowrap">
+                                <button
+                                  onClick={() => handleStartEdit(blog)}
+                                  className="text-[#32589c] hover:text-[#1f3a6a] p-2 rounded-full hover:bg-blue-50 transition-colors mr-2 cursor-pointer"
+                                  title="Edit Blog"
+                                >
+                                  <Edit size={18} />
+                                </button>
+                                <button
+                                  onClick={() => setBlogToDelete(blog)}
+                                  className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition-colors cursor-pointer"
+                                  title="Delete Blog"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  // =========================================================================
-  // VIEW: DASHBOARD LIST (Matching the exact Products Dashboard style!)
-  // =========================================================================
-  return (
-    <div className="min-h-screen bg-gray-50 p-6 md:p-10 font-sans">
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded bg-[#0a2766] text-white shadow-lg text-sm font-semibold">
-          <CheckCircle2 size={16} className="text-emerald-400" />
-          <span>{toastMessage.text}</span>
-        </div>
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {blogToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl border border-gray-200 space-y-4">
-            <div className="flex items-center gap-3 text-red-600">
-              <Trash2 size={22} />
-              <h3 className="font-bold text-lg text-gray-900">Delete Blog Article</h3>
-            </div>
-            <p className="text-sm text-gray-600">
-              Are you sure you want to delete <strong className="text-gray-900">&ldquo;{blogToDelete.title}&rdquo;</strong>? This action cannot be undone.
-            </p>
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setBlogToDelete(null)}
-                disabled={isDeleting}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900 cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={isDeleting}
-                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded text-sm font-medium shadow-sm transition-colors cursor-pointer"
-              >
-                {isDeleting ? "Deleting..." : "Confirm Delete"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="max-w-7xl mx-auto">
-        {/* Top Header Row matching Screenshot 1 */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-[#0a2766]">Blogs Dashboard</h1>
-            <p className="text-[#363636] mt-1">Manage your technical journal & blog articles</p>
-          </div>
-          <div className="flex items-center gap-6">
-            <Link href="/admin/leads" className="text-[#32589c] hover:text-[#0a2766] font-semibold transition-colors">
-              &larr; Back to Leads
-            </Link>
-            <Link href="/admin/products" className="text-[#32589c] hover:text-[#0a2766] font-semibold transition-colors">
-              Manage Products &rarr;
-            </Link>
-            <button 
-              onClick={handleLogout}
-              className="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded shadow-sm hover:bg-gray-50 transition-colors text-sm font-medium cursor-pointer"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-
-        {/* Action & Filter Bar matching Screenshot 1 */}
-        <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-          <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
-            {/* Filter Category */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-gray-700">Filter Category:</span>
-              <select
-                value={selectedCategoryFilter}
-                onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-                className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-gray-800 font-medium focus:outline-none focus:border-[#32589c]"
-              >
-                <option value="all">All Categories ({blogs.length})</option>
-                {allCategories.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat} ({blogs.filter((b) => b.category?.toLowerCase() === cat.toLowerCase()).length})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Status Filter */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-gray-700">Status:</span>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value as any)}
-                className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-gray-800 font-medium focus:outline-none focus:border-[#32589c]"
-              >
-                <option value="all">All ({blogs.length})</option>
-                <option value="published">Published ({blogs.filter((b) => (b.status || "published") === "published").length})</option>
-                <option value="draft">Drafts ({blogs.filter((b) => b.status === "draft").length})</option>
-              </select>
-            </div>
-
-            {/* Quick Search */}
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search title, slug..."
-                className="border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-gray-800 placeholder:text-gray-400 focus:outline-none focus:border-[#32589c] w-44 sm:w-56"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={handleOpenCreate}
-              className="flex items-center gap-2 bg-[#32589c] text-white px-4 py-2 rounded shadow-md hover:bg-[#1f3a6a] transition-colors font-medium self-end sm:self-auto cursor-pointer"
-            >
-              <Plus size={18} /> Add New Blog
-            </button>
-          </div>
-        </div>
-
-        {/* Table matching Screenshot 1 */}
-        {loading ? (
-          <div className="text-center py-20 text-[#363636]">Loading blogs...</div>
-        ) : filteredBlogs.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-10 text-center text-[#363636] border border-gray-200">
-            No articles found. Click &quot;Add New Blog&quot; to create one.
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-[#f3f5f8] text-[#0a2766] border-b border-gray-200 text-sm">
-                    <th className="py-4 px-4 font-semibold text-center w-28">Sequence</th>
-                    <th className="py-4 px-4 font-semibold">Image</th>
-                    <th className="py-4 px-6 font-semibold">Name</th>
-                    <th className="py-4 px-6 font-semibold">Category</th>
-                    <th className="py-4 px-6 font-semibold">Descriptions</th>
-                    <th className="py-4 px-6 font-semibold text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="text-sm">
-                  {filteredBlogs.map((blog, idx) => {
-                    const isFirst = idx === 0;
-                    const isLast = idx === filteredBlogs.length - 1;
-
-                    return (
-                      <tr key={blog.id || blog.slug} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        {/* Sequence */}
-                        <td className="py-4 px-4 text-center whitespace-nowrap">
-                          <div className="inline-flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200">
-                            <span className={`font-bold px-2 py-0.5 rounded text-xs ${
-                              idx === 0 
-                                ? 'bg-amber-100 text-amber-900 border border-amber-300' 
-                                : idx < 3
-                                ? 'bg-blue-50 text-[#0a2766] border border-blue-200'
-                                : 'bg-gray-100 text-gray-700'
-                            }`}>
-                              #{idx + 1}
-                            </span>
-                            <div className="flex flex-col gap-0.5">
-                              <button
-                                type="button"
-                                disabled={isFirst}
-                                onClick={() => handleMoveBlog(idx, "up")}
-                                className={`p-0.5 rounded transition-colors ${
-                                  isFirst 
-                                    ? 'text-gray-300 cursor-not-allowed' 
-                                    : 'text-gray-600 hover:text-[#0a2766] hover:bg-blue-100 cursor-pointer'
-                                }`}
-                                title="Move Up"
-                              >
-                                <ArrowUp size={13} strokeWidth={2.5} />
-                              </button>
-                              <button
-                                type="button"
-                                disabled={isLast}
-                                onClick={() => handleMoveBlog(idx, "down")}
-                                className={`p-0.5 rounded transition-colors ${
-                                  isLast 
-                                    ? 'text-gray-300 cursor-not-allowed' 
-                                    : 'text-gray-600 hover:text-[#0a2766] hover:bg-blue-100 cursor-pointer'
-                                }`}
-                                title="Move Down"
-                              >
-                                <ArrowDown size={13} strokeWidth={2.5} />
-                              </button>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Image */}
-                        <td className="py-4 px-4">
-                          <img
-                            src={blog.imageSrc || "/blog1/Blog 1- 1080 x 1080.svg"}
-                            alt={blog.title}
-                            className="w-16 h-16 object-cover bg-white border border-gray-200 rounded"
-                          />
-                        </td>
-
-                        {/* Name / Title */}
-                        <td className="py-4 px-6 font-medium text-gray-900">
-                          <div className="font-semibold text-gray-900 uppercase leading-snug">
-                            {blog.title}
-                          </div>
-                          <div className="mt-1">
-                            <a 
-                              href={`/blogs/${blog.slug}`} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-xs text-[#0a2766] hover:text-[#32589c] hover:underline font-mono bg-blue-50/80 px-2 py-0.5 rounded border border-blue-200 transition-colors"
-                              title="Preview blog article"
-                            >
-                              <ExternalLink size={11} className="text-[#32589c]" />
-                              /blogs/{blog.slug}
-                            </a>
-                          </div>
-                        </td>
-
-                        {/* Category */}
-                        <td className="py-4 px-6 text-gray-700 whitespace-nowrap">
-                          {blog.category}
-                        </td>
-
-                        {/* Descriptions */}
-                        <td className="py-4 px-6 text-gray-700 max-w-sm space-y-1">
-                          {blog.lead && (
-                            <div>
-                              <span className="inline-block text-[10px] font-bold text-[#0a2766] bg-blue-50 px-1.5 py-0.5 rounded mr-1">
-                                Subheading
-                              </span>
-                              <span className="text-xs text-gray-800 line-clamp-1">{blog.lead}</span>
-                            </div>
-                          )}
-                          <div>
-                            <span className="inline-block text-[10px] font-bold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded mr-1">
-                              Detail
-                            </span>
-                            <span className="text-xs text-gray-600 line-clamp-1">
-                              {blog.author} • {blog.date} ({blog.readTime})
-                            </span>
-                          </div>
-                          {(blog.status === "draft") && (
-                            <div>
-                              <span className="inline-block text-[10px] font-bold text-amber-800 bg-amber-100 px-1.5 py-0.5 rounded">
-                                Draft
-                              </span>
-                            </div>
-                          )}
-                        </td>
-
-                        {/* Actions */}
-                        <td className="py-4 px-6 text-right whitespace-nowrap">
-                          <button 
-                            onClick={() => handleStartEdit(blog)}
-                            className="text-[#32589c] hover:text-[#1f3a6a] p-2 rounded-full hover:bg-blue-50 transition-colors mr-2 cursor-pointer"
-                            title="Edit Blog"
-                          >
-                            <Edit size={18} />
-                          </button>
-                          <button 
-                            onClick={() => setBlogToDelete(blog)}
-                            className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition-colors cursor-pointer"
-                            title="Delete Blog"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+          );
 }
