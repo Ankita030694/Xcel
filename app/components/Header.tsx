@@ -45,7 +45,8 @@ export const Header = () => {
       sessionStorage.setItem('xcel_scroll_to_blogs', 'true');
     } catch (err) {}
 
-    const isBlogsPage = window.location.pathname === '/blogs' || window.location.pathname === '/blogs/';
+    const cleanPath = (window.location.pathname || '').toLowerCase().replace(/\/$/, '');
+    const isBlogsPage = cleanPath === '/blogs';
     if (isBlogsPage) {
       e.preventDefault();
       try {
@@ -53,10 +54,10 @@ export const Header = () => {
       } catch (err) {}
 
       window.dispatchEvent(new CustomEvent('select-blog-category', { 
-        detail: { category: 'all' } 
+        detail: { category: 'all', scrollToTop: false } 
       }));
 
-      window.dispatchEvent(new CustomEvent('trigger-blogs-autoscroll'));
+      window.dispatchEvent(new CustomEvent('scroll-to-blogs-content-direct'));
     }
   };
 
@@ -153,15 +154,15 @@ export const Header = () => {
                   </div>
                 </div>
               </div>
-              <Link 
+              <a 
                 href="/blogs" 
                 onClick={handleIndustryInsightsClick}
-                className={`text-[#3b5b95] font-semibold text-[14px] pb-1 border-b-[2.5px] transition-all ${
+                className={`text-[#3b5b95] font-semibold text-[14px] pb-1 border-b-[2.5px] transition-all cursor-pointer ${
                   isActive('/blogs') ? 'border-[#3b5b95]' : 'border-transparent hover:border-[#3b5b95]'
                 }`}
               >
                 INDUSTRY INSIGHTS
-              </Link>
+              </a>
               <Link 
                 href="/contact" 
                 className={`text-[#3b5b95] font-semibold text-[14px] pb-1 border-b-[2.5px] transition-all ${
@@ -252,15 +253,15 @@ export const Header = () => {
               <span className="text-[#3b5b95] font-semibold text-[15px]">PRODUCTS</span>
             </div>
           </a>
-          <Link 
+          <a 
             href="/blogs" 
             onClick={handleIndustryInsightsClick} 
-            className={`text-[#3b5b95] font-semibold text-[15px] pb-1 border-b-[2.5px] transition-all ${
+            className={`text-[#3b5b95] font-semibold text-[15px] pb-1 border-b-[2.5px] transition-all cursor-pointer ${
               isActive('/blogs') ? 'border-[#3b5b95]' : 'border-transparent hover:text-[#2f497a]'
             }`}
           >
             INDUSTRY INSIGHTS
-          </Link>
+          </a>
           <Link 
             href="/contact" 
             onClick={() => setIsMobileMenuOpen(false)} 

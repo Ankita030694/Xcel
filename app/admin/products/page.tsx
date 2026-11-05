@@ -118,7 +118,7 @@ export default function ProductsDashboard() {
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [existingBrochure, setExistingBrochure] = useState<string | null>(null);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imageBgColor, setImageBgColor] = useState<string>('#f4f5f9');
+  const [imageBgColor, setImageBgColor] = useState<string>('#ffffff');
   const [imageBgColors, setImageBgColors] = useState<string[]>([]);
   const [newImageBgColors, setNewImageBgColors] = useState<string[]>([]);
   const [brochureFile, setBrochureFile] = useState<File | null>(null);
@@ -344,7 +344,7 @@ export default function ProductsDashboard() {
     setNewImageBgColors([]);
     setExistingBrochure(null);
     setImageFiles([]);
-    setImageBgColor('#f4f5f9');
+    setImageBgColor('#ffffff');
     setBrochureFile(null);
     setFeatures([]);
     setFaqs([]);
@@ -367,14 +367,15 @@ export default function ProductsDashboard() {
     setIndustriesServed(Array.isArray(product.industriesServed) ? product.industriesServed : []);
     const allExisting = [product.imageUrl, ...(product.additionalImages || [])].filter(Boolean);
     setExistingImages(allExisting);
+    const cleanColor = (c?: string) => (!c || c.toLowerCase() === '#f4f5f9' ? '#ffffff' : c);
     if (Array.isArray(product.imageBgColors) && product.imageBgColors.length > 0) {
-      setImageBgColors(allExisting.map((_, i) => product.imageBgColors?.[i] || product.imageBgColor || '#f4f5f9'));
+      setImageBgColors(allExisting.map((_, i) => cleanColor(product.imageBgColors?.[i] || product.imageBgColor)));
     } else {
-      const def = product.imageBgColor || '#f4f5f9';
+      const def = cleanColor(product.imageBgColor);
       setImageBgColors(allExisting.map(() => def));
     }
     setNewImageBgColors([]);
-    setImageBgColor(product.imageBgColor || '#f4f5f9');
+    setImageBgColor(cleanColor(product.imageBgColor));
     setExistingBrochure(product.brochureUrl || null);
     setFeatures(product.features || []);
     setFaqs(product.faqs || []);
@@ -458,7 +459,7 @@ export default function ProductsDashboard() {
   const handleImageBgColorChange = (index: number, newColor: string) => {
     setImageBgColors(prev => {
       const next = [...prev];
-      while (next.length <= index) next.push('#f4f5f9');
+      while (next.length <= index) next.push('#ffffff');
       next[index] = newColor;
       return next;
     });
@@ -467,7 +468,7 @@ export default function ProductsDashboard() {
   const handleNewImageBgColorChange = (index: number, newColor: string) => {
     setNewImageBgColors(prev => {
       const next = [...prev];
-      while (next.length <= index) next.push('#f4f5f9');
+      while (next.length <= index) next.push('#ffffff');
       next[index] = newColor;
       return next;
     });
@@ -536,11 +537,11 @@ export default function ProductsDashboard() {
 
       const allColors = allImages.map((_, idx) => {
         if (idx < existingImages.length) {
-          const col = imageBgColors[idx]?.trim() || '#f4f5f9';
+          const col = imageBgColors[idx]?.trim() || '#ffffff';
           return col.startsWith('#') ? col : `#${col}`;
         } else {
           const newIdx = idx - existingImages.length;
-          const col = newImageBgColors[newIdx]?.trim() || '#f4f5f9';
+          const col = newImageBgColors[newIdx]?.trim() || '#ffffff';
           return col.startsWith('#') ? col : `#${col}`;
         }
       });
@@ -566,7 +567,7 @@ export default function ProductsDashboard() {
         faqs: faqs.filter(f => f.question.trim() && f.answer.trim()),
         imageUrl,
         additionalImages,
-        imageBgColor: allColors[0] || '#f4f5f9',
+        imageBgColor: allColors[0] || '#ffffff',
         imageBgColors: allColors
       };
 
@@ -975,7 +976,7 @@ export default function ProductsDashboard() {
                               src={product.imageUrl} 
                               alt={product.name} 
                               className="w-16 h-16 object-contain border border-gray-200 rounded p-1" 
-                              style={{ backgroundColor: (Array.isArray(product.imageBgColors) && product.imageBgColors[0]) || product.imageBgColor || '#f4f5f9' }}
+                              style={{ backgroundColor: (Array.isArray(product.imageBgColors) && product.imageBgColors[0] && product.imageBgColors[0].toLowerCase() !== '#f4f5f9' ? product.imageBgColors[0] : (product.imageBgColor && product.imageBgColor.toLowerCase() !== '#f4f5f9' ? product.imageBgColor : '#ffffff')) }}
                             />
                             {Array.isArray(product.imageBgColors) && product.imageBgColors.length > 1 ? (
                               <div className="flex gap-0.5 mt-1 justify-center max-w-[64px] flex-wrap" title={`${product.imageBgColors.length} images with per-image colors`}>
@@ -983,7 +984,7 @@ export default function ProductsDashboard() {
                                   <span
                                     key={cIdx}
                                     className="w-2.5 h-2.5 rounded-full border border-gray-300 shadow-2xs"
-                                    style={{ backgroundColor: col || '#f4f5f9' }}
+                                    style={{ backgroundColor: col && col.toLowerCase() !== '#f4f5f9' ? col : '#ffffff' }}
                                     title={`Image #${cIdx + 1}: ${col}`}
                                   />
                                 ))}
@@ -991,7 +992,7 @@ export default function ProductsDashboard() {
                                   <span className="text-[9px] text-gray-500 font-bold">+{product.imageBgColors.length - 5}</span>
                                 )}
                               </div>
-                            ) : (product.imageBgColor && product.imageBgColor.toLowerCase() !== '#f4f5f9') ? (
+                            ) : (product.imageBgColor && product.imageBgColor.toLowerCase() !== '#f4f5f9' && product.imageBgColor.toLowerCase() !== '#ffffff') ? (
                               <span 
                                 className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white shadow-xs" 
                                 style={{ backgroundColor: product.imageBgColor }}
@@ -1323,17 +1324,10 @@ export default function ProductsDashboard() {
                         <span className="text-[11px] text-gray-500 font-normal">Quick set all:</span>
                         <button
                           type="button"
-                          onClick={() => handleApplyColorToAll('#f4f5f9')}
-                          className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[11px] font-medium hover:bg-gray-50 cursor-pointer shadow-2xs"
-                        >
-                          Default (#f4f5f9)
-                        </button>
-                        <button
-                          type="button"
                           onClick={() => handleApplyColorToAll('#ffffff')}
                           className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[11px] font-medium hover:bg-gray-50 cursor-pointer shadow-2xs"
                         >
-                          White (#ffffff)
+                          White (Default)
                         </button>
                         <button
                           type="button"
@@ -1341,6 +1335,13 @@ export default function ProductsDashboard() {
                           className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[11px] font-medium hover:bg-gray-50 cursor-pointer shadow-2xs"
                         >
                           Light Gray (#f8f9fa)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleApplyColorToAll('#eef4ff')}
+                          className="px-2 py-0.5 bg-white border border-gray-200 rounded text-[11px] font-medium hover:bg-gray-50 cursor-pointer shadow-2xs"
+                        >
+                          Soft Blue (#eef4ff)
                         </button>
                       </div>
                     </div>
@@ -1351,7 +1352,7 @@ export default function ProductsDashboard() {
                           {existingImages.map((imgUrl, idx) => {
                             const isDragging = draggedImageIdx === idx;
                             const isDragOver = dragOverImageIdx === idx && draggedImageIdx !== idx;
-                            const currentColor = imageBgColors[idx] || '#f4f5f9';
+                            const currentColor = (imageBgColors[idx]?.toLowerCase() === '#f4f5f9' ? '#ffffff' : imageBgColors[idx]) || '#ffffff';
 
                             return (
                               <div key={idx} className="flex flex-col items-center gap-2 p-2.5 bg-white rounded-xl border border-gray-200 shadow-xs hover:border-gray-300 transition-all w-[130px]">
@@ -1464,7 +1465,7 @@ export default function ProductsDashboard() {
                                   <div className="flex items-center gap-1 w-full">
                                     <input
                                       type="color"
-                                      value={/^#[0-9A-Fa-f]{6}$/.test(currentColor) ? currentColor : '#f4f5f9'}
+                                      value={/^#[0-9A-Fa-f]{6}$/.test(currentColor) ? currentColor : '#ffffff'}
                                       onChange={(e) => handleImageBgColorChange(idx, e.target.value)}
                                       className="w-6 h-6 p-0 border border-gray-300 rounded cursor-pointer flex-shrink-0 bg-transparent shadow-2xs"
                                       title={`Pick color for Image #${idx + 1}`}
@@ -1478,7 +1479,7 @@ export default function ProductsDashboard() {
                                           const val = e.target.value.replace(/[^0-9A-Fa-f]/g, '').slice(0, 8);
                                           handleImageBgColorChange(idx, val ? `#${val}` : '');
                                         }}
-                                        placeholder="f4f5f9"
+                                        placeholder="ffffff"
                                         className="w-full text-[10px] font-mono uppercase bg-transparent focus:outline-none pl-0.5 text-gray-800"
                                         maxLength={8}
                                         title={`Enter hex for Image #${idx + 1}`}
@@ -1489,8 +1490,7 @@ export default function ProductsDashboard() {
                                   {/* Quick mini-palette swatches */}
                                   <div className="flex items-center justify-between gap-0.5 pt-0.5">
                                     {[
-                                      { hex: '#f4f5f9', title: 'Default Soft (#f4f5f9)' },
-                                      { hex: '#ffffff', title: 'White (#ffffff)' },
+                                      { hex: '#ffffff', title: 'White (Default)' },
                                       { hex: '#f8f9fa', title: 'Light Gray (#f8f9fa)' },
                                       { hex: '#eef4ff', title: 'Soft Blue (#eef4ff)' },
                                       { hex: '#111827', title: 'Dark (#111827)' }
@@ -1520,7 +1520,7 @@ export default function ProductsDashboard() {
                       </div>
                     )}
                     <input type="file" required={!editingProductId && existingImages.length === 0} multiple accept="image/*" onChange={e => {
-                      if (e.target.files) { const files = Array.from(e.target.files); setImageFiles(files); setNewImageBgColors(files.map(() => "#f4f5f9")); }
+                      if (e.target.files) { const files = Array.from(e.target.files); setImageFiles(files); setNewImageBgColors(files.map(() => "#ffffff")); }
                     }} className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#e6f0ff] file:text-[#0a2766] hover:file:bg-[#d0e3ff]" />
 
                     {imageFiles.length > 0 && (
@@ -1540,7 +1540,7 @@ export default function ProductsDashboard() {
                         </div>
                         <div className="flex flex-wrap gap-3">
                           {imageFiles.map((file, fIdx) => {
-                            const fileColor = newImageBgColors[fIdx] || '#f4f5f9';
+                            const fileColor = newImageBgColors[fIdx] || '#ffffff';
                             return (
                               <div key={fIdx} className="flex flex-col items-center gap-1.5 p-2 bg-white rounded-xl border border-gray-200 shadow-xs w-[125px]">
                                 <div
@@ -1560,7 +1560,7 @@ export default function ProductsDashboard() {
                                 <div className="w-full flex items-center gap-1 pt-1 border-t border-gray-100">
                                   <input
                                     type="color"
-                                    value={/^#[0-9A-Fa-f]{6}$/.test(fileColor) ? fileColor : '#f4f5f9'}
+                                    value={/^#[0-9A-Fa-f]{6}$/.test(fileColor) ? fileColor : '#ffffff'}
                                     onChange={(e) => handleNewImageBgColorChange(fIdx, e.target.value)}
                                     className="w-6 h-6 p-0 border border-gray-300 rounded cursor-pointer bg-transparent shadow-2xs"
                                     title={`Pick color for ${file.name}`}
@@ -1574,7 +1574,7 @@ export default function ProductsDashboard() {
                                         const val = e.target.value.replace(/[^0-9A-Fa-f]/g, '').slice(0, 8);
                                         handleNewImageBgColorChange(fIdx, val ? `#${val}` : '');
                                       }}
-                                      placeholder="f4f5f9"
+                                      placeholder="ffffff"
                                       className="w-full text-[10px] font-mono uppercase bg-transparent focus:outline-none pl-0.5 text-gray-800"
                                       maxLength={8}
                                     />

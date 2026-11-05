@@ -223,10 +223,36 @@ export const Footer = () => {
   useEffect(() => {
     let isMounted = true;
 
+    // Hydrate cached categories on client after initial mount to prevent SSR mismatch
+    try {
+      const stored = sessionStorage.getItem('xcel_blog_categories');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setBlogCategories(parsed);
+        }
+      }
+    } catch (e) {}
+
+    // Listen for real-time blog category updates dispatched by BlogsClient
+    const handleCategoriesUpdated = (e: any) => {
+      if (Array.isArray(e?.detail)) {
+        setBlogCategories(e.detail);
+        try {
+          sessionStorage.setItem('xcel_blog_categories', JSON.stringify(e.detail));
+        } catch (err) {}
+      }
+    };
+    window.addEventListener('xcel-blog-categories-updated', handleCategoriesUpdated);
+
     // Listen for real-time blog updates dispatched by BlogsClient
     const handleBlogsUpdated = (e: any) => {
       if (Array.isArray(e?.detail)) {
-        setBlogCategories(getActiveBlogCategories(e.detail));
+        const cats = getActiveBlogCategories(e.detail);
+        setBlogCategories(cats);
+        try {
+          sessionStorage.setItem('xcel_blog_categories', JSON.stringify(cats));
+        } catch (err) {}
       }
     };
     window.addEventListener('xcel-blogs-updated', handleBlogsUpdated);
@@ -261,7 +287,11 @@ export const Footer = () => {
         const merged = mergeWithDefaultBlogs(dynamicArticles, deletedSlugs);
         // Exclude drafts from footer category calculations
         const validArticles = merged.filter((a) => a.status !== "draft");
-        setBlogCategories(getActiveBlogCategories(validArticles));
+        const cats = getActiveBlogCategories(validArticles);
+        setBlogCategories(cats);
+        try {
+          sessionStorage.setItem('xcel_blog_categories', JSON.stringify(cats));
+        } catch (err) {}
       } catch {
         if (isMounted) {
           setBlogCategories(getActiveBlogCategories(BLOG_ARTICLES));
@@ -274,40 +304,41 @@ export const Footer = () => {
     return () => {
       isMounted = false;
       window.removeEventListener('xcel-blogs-updated', handleBlogsUpdated);
+      window.removeEventListener('xcel-blog-categories-updated', handleCategoriesUpdated);
     };
   }, []);
 
   const handleBlogCategoryClick = (categoryName: string, e: React.MouseEvent) => {
     if (typeof window === 'undefined') return;
 
-    const isBlogsPage = window.location.pathname === '/blogs' || window.location.pathname === '/blogs/';
+    const cleanPath = (window.location.pathname || '').toLowerCase().replace(/\/$/, '');
+    const isBlogsPage = cleanPath === '/blogs';
     if (isBlogsPage) {
       e.preventDefault();
       try {
-        const newUrl = `/blogs?category=${encodeURIComponent(categoryName)}`;
+        const newUrl = categoryName.toLowerCase() === 'all'
+          ? '/blogs'
+          : `/blogs?category=${encodeURIComponent(categoryName)}`;
         window.history.replaceState(window.history.state, '', newUrl);
       } catch (err) {}
 
       window.dispatchEvent(new CustomEvent('select-blog-category', { 
-        detail: { category: categoryName } 
+        detail: { category: categoryName, scrollToTop: false } 
       }));
 
+      window.dispatchEvent(new CustomEvent('scroll-to-blogs-content-direct'));
+    } else {
       try {
-        window.scrollTo({
-          top: 0,
-          left: 0,
-          behavior: 'instant',
-        });
-      } catch (err) {
-        window.scrollTo(0, 0);
-      }
+        sessionStorage.setItem('xcel_scroll_to_blogs', 'true');
+      } catch (err) {}
     }
   };
 
   const handleBlogsHeadingClick = (e: React.MouseEvent) => {
     if (typeof window === 'undefined') return;
 
-    const isBlogsPage = window.location.pathname === '/blogs' || window.location.pathname === '/blogs/';
+    const cleanPath = (window.location.pathname || '').toLowerCase().replace(/\/$/, '');
+    const isBlogsPage = cleanPath === '/blogs';
     if (isBlogsPage) {
       e.preventDefault();
       try {
@@ -547,7 +578,7 @@ export const Footer = () => {
                   <li><a href="/products?category=complete-range#complete-range" onClick={(e) => handleProductCategoryClick('complete-range', e)} className="hover:text-white transition-colors">COMPLETE RANGE</a></li>
                 </ul>
               </div>
-              <div className={blogCategories.length > 0 ? "flex-[1.5]" : "flex-1"}>
+              <div className="flex-[1.5]">
                 <h5 className="font-semibold text-[14px] mb-3">
                   <a 
                     href="/blogs" 
@@ -557,9 +588,19 @@ export const Footer = () => {
                     INDUSTRY INSIGHTS
                   </a>
                 </h5>
-                {blogCategories.length > 0 && (
-                  <ul className="flex flex-col gap-2 text-white/80 text-[11px]">
-                    {blogCategories.map((cat) => (
+                <ul className="flex flex-col gap-2 text-white/80 text-[11px]">
+                  <li>
+                    <a 
+                      href="/blogs" 
+                      onClick={(e) => handleBlogCategoryClick('all', e)}
+                      className="hover:text-white transition-colors block uppercase leading-snug"
+                    >
+                      ALL
+                    </a>
+                  </li>
+                  {blogCategories
+                    .filter((cat) => cat.toLowerCase() !== 'all')
+                    .map((cat) => (
                       <li key={cat}>
                         <a 
                           href={`/blogs?category=${encodeURIComponent(cat)}`} 
@@ -570,8 +611,7 @@ export const Footer = () => {
                         </a>
                       </li>
                     ))}
-                  </ul>
-                )}
+                </ul>
               </div>
               <div className="flex-1">
                 <h5 className="font-semibold text-[14px] mb-3">

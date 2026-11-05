@@ -139,7 +139,7 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
       const isMobile = window.innerWidth < 1024;
       const headerOffset = isMobile ? 135 : 145;
       const rect = element.getBoundingClientRect();
-      const currentScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
+      const currentScrollY = window.pageYOffset || document.documentElement.scrollTop || window.scrollY || 0;
       const elementY = rect.top + currentScrollY;
       const targetY = Math.max(0, Math.round(elementY - headerOffset));
 
@@ -158,6 +158,17 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
   const availableCategories = React.useMemo(() => {
     return getActiveBlogCategories(articles);
   }, [articles]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && availableCategories.length > 0) {
+      try {
+        sessionStorage.setItem("xcel_blog_categories", JSON.stringify(availableCategories));
+      } catch (e) {}
+      window.dispatchEvent(
+        new CustomEvent("xcel-blog-categories-updated", { detail: availableCategories })
+      );
+    }
+  }, [availableCategories]);
 
   const filteredArticles = React.useMemo(() => {
     const published = articles.filter((a) => a.status !== "draft");
@@ -181,6 +192,22 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
   useEffect(() => {
     forceScrollToTop();
 
+    const checkAndTriggerAutoScroll = (delay = 200) => {
+      const shouldAutoScroll = typeof window !== "undefined" && sessionStorage.getItem("xcel_scroll_to_blogs") === "true";
+      if (shouldAutoScroll) {
+        setTimeout(() => {
+          try {
+            sessionStorage.removeItem("xcel_scroll_to_blogs");
+          } catch (e) {}
+        }, 1000);
+
+        if (autoScrollTimerRef.current) clearTimeout(autoScrollTimerRef.current);
+        autoScrollTimerRef.current = setTimeout(() => {
+          scrollToBlogsContent("smooth");
+        }, delay);
+      }
+    };
+
     const syncCategoryFromUrl = () => {
       if (typeof window === "undefined") return;
       const urlParams = new URLSearchParams(window.location.search);
@@ -188,21 +215,11 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
       if (catParam) {
         setSelectedCategory(catParam);
       }
+      checkAndTriggerAutoScroll(100);
     };
 
     syncCategoryFromUrl();
-
-    const shouldAutoScroll = typeof window !== "undefined" && sessionStorage.getItem("xcel_scroll_to_blogs") === "true";
-    if (shouldAutoScroll) {
-      try {
-        sessionStorage.removeItem("xcel_scroll_to_blogs");
-      } catch (e) {}
-
-      if (autoScrollTimerRef.current) clearTimeout(autoScrollTimerRef.current);
-      autoScrollTimerRef.current = setTimeout(() => {
-        scrollToBlogsContent("smooth");
-      }, 1000);
-    }
+    checkAndTriggerAutoScroll(200);
 
     const handleCustomCategoryEvent = (e: any) => {
       if (e?.detail) {
@@ -227,18 +244,16 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
       if (autoScrollTimerRef.current) {
         clearTimeout(autoScrollTimerRef.current);
       }
-      scrollToBlogsContent("smooth");
-      setTimeout(() => {
+      autoScrollTimerRef.current = setTimeout(() => {
         scrollToBlogsContent("smooth");
-      }, 50);
+      }, 30);
     };
 
     const handleTriggerAutoScroll = () => {
-      forceScrollToTop();
       if (autoScrollTimerRef.current) clearTimeout(autoScrollTimerRef.current);
       autoScrollTimerRef.current = setTimeout(() => {
         scrollToBlogsContent("smooth");
-      }, 1000);
+      }, 30);
     };
 
     window.addEventListener("select-blog-category", handleCustomCategoryEvent);
@@ -316,8 +331,8 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
             ========================================================================= */}
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-14 sm:mb-10">
           {/* Pill in Centre */}
-          <div className="inline-flex items-center gap-2 bg-[#3b5b95]/10 text-[#3b5b95] border border-[#3b5b95]/20 px-4 py-1.5 rounded-full text-[0.75rem] font-bold tracking-[0.16em] uppercase mb-4 sm:mb-5">
-            <span className="w-2 h-2 rounded-full bg-[#3b5b95] animate-pulse" />
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 bg-[#3b5b95]/10 text-[#3b5b95] border border-[#3b5b95]/20 px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full text-[10px] xs:text-[11px] sm:text-[12px] font-bold tracking-[0.04em] sm:tracking-[0.14em] uppercase mb-4 sm:mb-5 whitespace-nowrap">
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-[#3b5b95] animate-pulse shrink-0" />
             <span>XCEL Technical Journal & Industry Insights</span>
           </div>
 

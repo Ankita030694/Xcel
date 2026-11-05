@@ -55,6 +55,16 @@ const FALLBACK_PRODUCTS: Record<string, any[]> = {
   ]
 };
 
+const getCardBgColor = (prod: any): string | undefined => {
+  const col = (Array.isArray(prod?.imageBgColors) && prod.imageBgColors[0]) || prod?.imageBgColor;
+  if (!col) return undefined;
+  const trimmed = String(col).trim().toLowerCase();
+  if (trimmed === '#f4f5f9' || trimmed === '#f8f9fc' || trimmed === '#ffffff' || trimmed === '#fff') {
+    return undefined;
+  }
+  return col;
+};
+
 export default function ProductsPage() {
   const pathname = usePathname();
   const [activeTab, setActiveTab] = useState<string>('washing');
@@ -226,9 +236,18 @@ export default function ProductsPage() {
   };
 
   useEffect(() => {
-    // 1. Ensure page starts at top so hero banner is visible first
+    // 1. Scroll to top ONLY on fresh navigations (no category in URL or storage).
+    //    When returning via browser back-button there will be a category hash/param
+    //    or a stored active category — in that case skip the scroll-to-top so
+    //    the auto-scroll-to-products logic below can position correctly.
     if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+      const hasHash = Boolean(window.location.hash && window.location.hash.substring(1));
+      const hasCategoryParam = Boolean(new URLSearchParams(window.location.search).get('category'));
+      const hasStoredCategory = Boolean(sessionStorage.getItem('xcel_active_category'));
+      const isReturning = hasHash || hasCategoryParam || hasStoredCategory;
+      if (!isReturning) {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+      }
     }
 
     const syncCategoryFromUrlOrStorage = () => {
@@ -276,11 +295,13 @@ export default function ProductsPage() {
         scrollToProductsHeading('smooth');
       }, 150);
     } else {
-      // Auto-scroll to the category header and products ONLY when navigating with a specific category
-      // (e.g. category card click, engineering excellence, or ?category= / #category)
+      // Auto-scroll to the category header and products when navigating with a specific category
+      // (e.g. category card click, engineering excellence, ?category= / #category, or back-navigation
+      // with a stored category)
       const hasSpecificCategory = typeof window !== 'undefined' && (
         Boolean(window.location.hash && window.location.hash.substring(1)) ||
-        Boolean(new URLSearchParams(window.location.search).get('category'))
+        Boolean(new URLSearchParams(window.location.search).get('category')) ||
+        Boolean(sessionStorage.getItem('xcel_active_category'))
       );
 
       if (hasSpecificCategory) {
@@ -498,19 +519,6 @@ export default function ProductsPage() {
                   scroll={true}
                   key={product.id} 
                   onClick={() => {
-                    if (typeof window !== 'undefined') {
-                      try {
-                        window.scrollTo(0, 0);
-                        if (document.documentElement) {
-                          document.documentElement.scrollTop = 0;
-                          document.documentElement.scrollLeft = 0;
-                        }
-                        if (document.body) {
-                          document.body.scrollTop = 0;
-                          document.body.scrollLeft = 0;
-                        }
-                      } catch (err) {}
-                    }
                     try {
                       sessionStorage.setItem(`xcel_prod_${product.id}`, JSON.stringify(product));
                       if (product.slug) {
@@ -531,15 +539,15 @@ export default function ProductsPage() {
                 
                 {/* Product Image */}
                 <div 
-                  className="w-[42%] sm:w-[44%] md:w-[45%] xl:w-full h-full xl:h-[260px] bg-[#f8f9fa] xl:bg-white p-3 sm:p-4 md:p-5 xl:p-6 relative flex items-center justify-center flex-shrink-0 xl:border-b xl:border-gray-50"
-                  style={{ backgroundColor: (Array.isArray(product.imageBgColors) && product.imageBgColors[0]) || product.imageBgColor || undefined }}
+                  className="w-[42%] sm:w-[44%] md:w-[45%] xl:w-full h-full xl:h-[260px] bg-white p-3 sm:p-4 md:p-5 xl:p-6 relative flex items-center justify-center flex-shrink-0 xl:border-b xl:border-gray-50"
+                  style={{ backgroundColor: getCardBgColor(product) }}
                 >
                   <img 
                     src={product.imageUrl || '/placeholder.png'} 
                     alt={product.name} 
                     loading="lazy"
                     decoding="async"
-                    className={`w-full h-full object-contain ${(Array.isArray(product.imageBgColors) && product.imageBgColors[0]) || product.imageBgColor ? 'mix-blend-normal' : 'mix-blend-multiply xl:mix-blend-normal'}`} 
+                    className="w-full h-full object-contain mix-blend-normal" 
                   />
                 </div>
 

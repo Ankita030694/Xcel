@@ -159,6 +159,15 @@ function saveProductToCache(id: string, data: any) {
   }
 }
 
+const normalizeBgColor = (col: string | undefined | null): string => {
+  if (!col) return '#ffffff';
+  const trimmed = String(col).trim().toLowerCase();
+  if (trimmed === '#f4f5f9' || trimmed === '#f8f9fc' || trimmed === '#ffffff' || trimmed === '#fff') {
+    return '#ffffff';
+  }
+  return col;
+};
+
 export default function ProductDetailPage() {
   const params = useParams();
   const id = (params?.id as string) || '';
@@ -171,22 +180,115 @@ export default function ProductDetailPage() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const [activeMobileCardIndex, setActiveMobileCardIndex] = useState(0);
+
+  // Drag-to-scroll trackers for carousel
+  const isCarouselDraggingRef = useRef(false);
+  const carouselStartXRef = useRef(0);
+  const carouselScrollLeftRef = useRef(0);
+  const carouselHasMovedRef = useRef(false);
 
   const updateScrollButtons = () => {
     if (carouselRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
       setCanScrollLeft(scrollLeft > 10);
       setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 10);
+
+      // Compute active card index for mobile pagination
+      const firstCard = carouselRef.current.querySelector<HTMLElement>(':scope > *');
+      if (firstCard) {
+        const cardWidth = firstCard.offsetWidth;
+        const style = window.getComputedStyle(carouselRef.current);
+        const gap = parseFloat(style.columnGap || style.gap || '0') || 16;
+        const idx = Math.round(scrollLeft / (cardWidth + gap));
+        setActiveMobileCardIndex(Math.max(0, Math.min(idx, relatedProducts.length - 1)));
+      }
     }
   };
 
   const scrollCarousel = (direction: 'left' | 'right') => {
     if (carouselRef.current) {
-      const scrollDistance = Math.min(carouselRef.current.clientWidth * 0.8, 640);
-      carouselRef.current.scrollBy({
-        left: direction === 'left' ? -scrollDistance : scrollDistance,
-        behavior: 'smooth'
-      });
+      const container = carouselRef.current;
+      const firstCard = container.querySelector<HTMLElement>(':scope > *');
+      if (firstCard) {
+        const cardWidth = firstCard.offsetWidth;
+        const style = window.getComputedStyle(container);
+        const gap = parseFloat(style.columnGap || style.gap || '0') || 16;
+        const isTablet = typeof window !== 'undefined' && window.innerWidth >= 640 && window.innerWidth < 1024;
+        const cardsToScroll = isTablet ? 2 : 1;
+        const step = (cardWidth + gap) * cardsToScroll;
+        const target = direction === 'left' 
+          ? container.scrollLeft - step 
+          : container.scrollLeft + step;
+
+        container.scrollTo({
+          left: target,
+          behavior: 'smooth'
+        });
+      } else {
+        const scrollDistance = container.clientWidth;
+        container.scrollBy({
+          left: direction === 'left' ? -scrollDistance : scrollDistance,
+          behavior: 'smooth'
+        });
+      }
+    }
+  };
+
+  const scrollToCard = (idx: number) => {
+    if (carouselRef.current) {
+      const container = carouselRef.current;
+      const firstCard = container.querySelector<HTMLElement>(':scope > *');
+      if (firstCard) {
+        const cardWidth = firstCard.offsetWidth;
+        const style = window.getComputedStyle(container);
+        const gap = parseFloat(style.columnGap || style.gap || '0') || 16;
+        container.scrollTo({
+          left: idx * (cardWidth + gap),
+          behavior: 'smooth'
+        });
+      }
+    }
+  };
+
+  const handleCarouselPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    if (!carouselRef.current) return;
+    isCarouselDraggingRef.current = true;
+    carouselStartXRef.current = e.pageX;
+    carouselScrollLeftRef.current = carouselRef.current.scrollLeft;
+    carouselHasMovedRef.current = false;
+  };
+
+  const handleCarouselPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isCarouselDraggingRef.current || !carouselRef.current) return;
+    const delta = e.pageX - carouselStartXRef.current;
+    if (Math.abs(delta) > 5) {
+      carouselHasMovedRef.current = true;
+    }
+    carouselRef.current.scrollLeft = carouselScrollLeftRef.current - delta;
+  };
+
+  const handleCarouselPointerUp = () => {
+    if (!isCarouselDraggingRef.current) return;
+    isCarouselDraggingRef.current = false;
+
+    // Snap to nearest card boundary (2 cards on tablet, 1 card on mobile)
+    if (carouselHasMovedRef.current && carouselRef.current) {
+      const container = carouselRef.current;
+      const firstCard = container.querySelector<HTMLElement>(':scope > *');
+      if (firstCard) {
+        const cardWidth = firstCard.offsetWidth;
+        const style = window.getComputedStyle(container);
+        const gap = parseFloat(style.columnGap || style.gap || '0') || 16;
+        const isTablet = typeof window !== 'undefined' && window.innerWidth >= 640 && window.innerWidth < 1024;
+        const step = isTablet ? (cardWidth + gap) * 2 : (cardWidth + gap);
+        const nearestIndex = Math.round(container.scrollLeft / step);
+        container.scrollTo({
+          left: nearestIndex * step,
+          behavior: 'smooth'
+        });
+      }
     }
   };
   
@@ -481,39 +583,19 @@ export default function ProductDetailPage() {
     if (isOpening) {
       setMobileExpanded(id);
 
-      if (mobileAccordionRef.current) {
-        const container = mobileAccordionRef.current;
-        const sectionIndex = SECTION_IDS.indexOf(id);
-        const buttons = container.querySelectorAll<HTMLButtonElement>('button[data-accordion-btn]');
-        
-        let accumulatedTop = 0;
-        for (let i = 0; i < sectionIndex; i++) {
-          accumulatedTop += (buttons[i]?.offsetHeight || 72) + 1;
+      // Wait for the accordion open transition to fully complete before scrolling,
+      // so the layout is stable and we only need a single scroll (no jerk).
+      const headerOffset = 135; // sticky header total height (ticker 34px + navbar 90px + spacing)
+      setTimeout(() => {
+        const btn = document.getElementById(`mobile-tab-${id}`);
+        if (btn) {
+          const btnTop = btn.getBoundingClientRect().top + window.pageYOffset;
+          window.scrollTo({
+            top: Math.max(0, btnTop - headerOffset),
+            behavior: 'smooth'
+          });
         }
-
-        const containerTop = container.getBoundingClientRect().top + window.pageYOffset;
-        const headerOffset = 135; // sticky header total height (ticker 34px + navbar 90px + spacing)
-        const targetScrollTop = Math.max(0, containerTop + accumulatedTop - headerOffset);
-
-        window.scrollTo({
-          top: targetScrollTop,
-          behavior: 'smooth'
-        });
-
-        // Refine positioning once collapse transition settles
-        setTimeout(() => {
-          const btn = document.getElementById(`mobile-tab-${id}`);
-          if (btn) {
-            const currentTop = btn.getBoundingClientRect().top;
-            if (Math.abs(currentTop - headerOffset) > 8) {
-              window.scrollTo({
-                top: Math.max(0, currentTop + window.pageYOffset - headerOffset),
-                behavior: 'smooth'
-              });
-            }
-          }
-        }, 360);
-      }
+      }, 420); // slightly after the 400ms grid-template-rows transition
     } else {
       setMobileExpanded(null);
     }
@@ -714,7 +796,7 @@ export default function ProductDetailPage() {
             {/* Main Image */}
             <div 
               className="relative w-full aspect-square rounded-2xl sm:rounded-3xl lg:rounded-[32px] flex items-center justify-center p-4 sm:p-6 md:p-8 lg:p-10 mb-6 overflow-hidden border border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.03)] transition-colors duration-300"
-              style={{ backgroundColor: (Array.isArray(product.imageBgColors) && product.imageBgColors[activeImageIndex]) || product.imageBgColor || '#f4f5f9' }}
+              style={{ backgroundColor: normalizeBgColor((Array.isArray(product.imageBgColors) && product.imageBgColors[activeImageIndex]) || product.imageBgColor) }}
             >
               <img 
                 src={productImages[activeImageIndex] || '/placeholder.png'} 
@@ -757,7 +839,7 @@ export default function ProductDetailPage() {
                       }`}
                       style={{ 
                         width: 'calc((100% - 30px) / 4)',
-                        backgroundColor: (Array.isArray(product.imageBgColors) && product.imageBgColors[idx]) || product.imageBgColor || '#f4f5f9'
+                        backgroundColor: normalizeBgColor((Array.isArray(product.imageBgColors) && product.imageBgColors[idx]) || product.imageBgColor)
                       }}
                       aria-label={`View image ${idx + 1}`}
                     >
@@ -872,7 +954,7 @@ export default function ProductDetailPage() {
                 <div className={`smooth-accordion-grid ${isSectionOpen ? 'is-open' : ''}`}>
                   <div className="smooth-accordion-inner">
                     <div className="smooth-accordion-content p-4 sm:p-5 pt-0 mt-0">
-                      <div className="pt-4 border-t border-gray-100">
+                      <div className="pt-4">
                         {section.content}
                       </div>
                     </div>
@@ -1002,10 +1084,14 @@ export default function ProductDetailPage() {
             <div 
               ref={carouselRef}
               onScroll={updateScrollButtons}
-              className="flex flex-row gap-4 sm:gap-6 overflow-x-auto scrollbar-hide py-3 -mx-4 px-4 sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 snap-x snap-mandatory scroll-smooth"
+              onPointerDown={handleCarouselPointerDown}
+              onPointerMove={handleCarouselPointerMove}
+              onPointerUp={handleCarouselPointerUp}
+              onPointerCancel={handleCarouselPointerUp}
+              className="flex flex-row gap-4 sm:gap-6 overflow-x-auto scrollbar-hide py-3 w-full sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 snap-x snap-mandatory scroll-smooth touch-pan-y cursor-grab active:cursor-grabbing"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
-              {relatedProducts.map((relProd) => {
+              {relatedProducts.map((relProd, pIdx) => {
                 const prodUrl = `/product/${relProd.slug || relProd.id}`;
                 const prodImg = relProd.imageUrl || (Array.isArray(relProd.additionalImages) && relProd.additionalImages[0]) || '/placeholder.png';
                 const desc = relProd.subheading || relProd.cardDescription || relProd.shortDescription || '';
@@ -1014,14 +1100,18 @@ export default function ProductDetailPage() {
                   <Link
                     key={relProd.id}
                     href={prodUrl}
-                    onClick={() => {
+                    onClick={(e) => {
+                      if (carouselHasMovedRef.current) {
+                        e.preventDefault();
+                        return;
+                      }
                       forceScrollToTop();
                       try {
                         sessionStorage.setItem(`xcel_prod_${relProd.id}`, JSON.stringify(relProd));
                         if (relProd.slug) {
                           sessionStorage.setItem(`xcel_prod_${relProd.slug}`, JSON.stringify(relProd));
                         }
-                      } catch (e) {}
+                      } catch (err) {}
                     }}
                     onMouseEnter={() => {
                       try {
@@ -1031,17 +1121,17 @@ export default function ProductDetailPage() {
                         }
                       } catch (e) {}
                     }}
-                    className="group flex flex-col w-[260px] xs:w-[280px] sm:w-[310px] md:w-[320px] shrink-0 bg-white rounded-2xl border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_28px_rgba(10,39,102,0.1)] hover:-translate-y-1.5 transition-all duration-300 overflow-hidden snap-start cursor-pointer"
+                    className={`group flex flex-col w-full min-w-full sm:min-w-[calc(50%-12px)] sm:w-[calc(50%-12px)] lg:min-w-0 lg:w-[310px] xl:w-[320px] shrink-0 bg-white rounded-2xl border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_28px_rgba(10,39,102,0.1)] hover:-translate-y-1.5 transition-all duration-300 overflow-hidden snap-start ${pIdx % 2 === 0 ? 'sm:snap-start' : 'sm:snap-align-none'} lg:snap-start cursor-pointer select-none`}
                   >
                     {/* Product Image */}
                     <div 
-                      className="relative w-full h-[180px] sm:h-[200px] bg-[#f8f9fc] p-4 flex items-center justify-center overflow-hidden border-b border-gray-50"
-                      style={{ backgroundColor: (Array.isArray(relProd.imageBgColors) && relProd.imageBgColors[0]) || relProd.imageBgColor || '#f8f9fc' }}
+                      className="relative w-full h-[235px] sm:h-[260px] bg-white p-2.5 sm:p-3 flex items-center justify-center overflow-hidden border-b border-gray-50"
+                      style={{ backgroundColor: normalizeBgColor((Array.isArray(relProd.imageBgColors) && relProd.imageBgColors[0]) || relProd.imageBgColor) }}
                     >
                       <img
                         src={prodImg}
                         alt={relProd.name}
-                        className={`w-full h-full object-contain ${(Array.isArray(relProd.imageBgColors) && relProd.imageBgColors[0]) || relProd.imageBgColor ? 'mix-blend-normal' : 'mix-blend-multiply'} group-hover:scale-105 transition-transform duration-300`}
+                        className="w-full h-full object-contain mix-blend-normal group-hover:scale-105 transition-transform duration-300"
                         loading="lazy"
                         decoding="async"
                       />
@@ -1074,6 +1164,25 @@ export default function ProductDetailPage() {
                 );
               })}
             </div>
+
+            {/* Mobile Slide Indicator Dots */}
+            {relatedProducts.length > 1 && (
+              <div className="flex sm:hidden items-center justify-center gap-1.5 mt-3">
+                {relatedProducts.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => scrollToCard(idx)}
+                    className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
+                      activeMobileCardIndex === idx 
+                        ? 'w-6 bg-[#0a2766]' 
+                        : 'w-1.5 bg-gray-200 hover:bg-gray-400'
+                    }`}
+                    aria-label={`Go to related product ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
           </section>
         )}
 
