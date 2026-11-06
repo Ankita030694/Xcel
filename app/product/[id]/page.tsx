@@ -343,6 +343,9 @@ export default function ProductDetailPage() {
   const forceScrollToTop = () => {
     if (typeof window === 'undefined') return;
     try {
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'manual';
+      }
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       window.scrollTo(0, 0);
       if (document.scrollingElement) {
@@ -356,6 +359,19 @@ export default function ProductDetailPage() {
       if (document.body) {
         document.body.scrollTop = 0;
         document.body.scrollLeft = 0;
+      }
+
+      // Explicitly ensure breadcrumbs element is visible on iPad / tablet viewports
+      const bc = document.getElementById('product-breadcrumbs');
+      if (bc) {
+        const rect = bc.getBoundingClientRect();
+        const header = document.querySelector('header');
+        const headerHeight = header ? header.offsetHeight : 124;
+        if (rect.top < headerHeight || window.scrollY > 5) {
+          try {
+            bc.scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior });
+          } catch (e2) {}
+        }
       }
     } catch (e) {
       try {
@@ -608,10 +624,14 @@ export default function ProductDetailPage() {
       const rId = requestAnimationFrame(forceScrollToTop);
       const t1 = setTimeout(forceScrollToTop, 50);
       const t2 = setTimeout(forceScrollToTop, 150);
+      const t3 = setTimeout(forceScrollToTop, 350);
+      const t4 = setTimeout(forceScrollToTop, 600);
       return () => {
         cancelAnimationFrame(rId);
         clearTimeout(t1);
         clearTimeout(t2);
+        clearTimeout(t3);
+        clearTimeout(t4);
       };
     }
   }, [loading, product]);
@@ -776,13 +796,13 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-white font-sans flex flex-col">
       <Header />
 
-      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-7 md:pt-8 lg:pt-8 pb-10 min-h-[80vh]">
+      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-7 md:pt-9 lg:pt-8 pb-10 min-h-[80vh]">
         
         {/* Breadcrumbs Navigation */}
-        <div id="product-breadcrumbs" className="w-full mb-4 sm:mb-6 lg:mb-8 relative z-10 scroll-mt-36">
+        <div id="product-breadcrumbs" className="w-full max-w-full mb-4 sm:mb-6 md:mb-7 lg:mb-8 relative z-20 scroll-mt-36 md:scroll-mt-40">
           <nav 
             aria-label="Breadcrumb"
-            className="flex flex-wrap items-center gap-x-1.5 sm:gap-x-2.5 gap-y-1.5 text-[12px] sm:text-[13px] md:text-[14px] text-[#363636] py-1 leading-normal"
+            className="flex flex-wrap items-center gap-x-1.5 sm:gap-x-2.5 gap-y-1.5 text-[12px] sm:text-[13px] md:text-[14px] text-[#363636] py-1 leading-normal w-full max-w-full"
           >
             <Link href="/" className="hover:text-[#0a2766] transition-colors flex items-center gap-1.5 shrink-0" title="Home">
               <Home size={14} strokeWidth={1.75} className="text-[#3b5b95]" />
@@ -818,7 +838,7 @@ export default function ProductDetailPage() {
             </Link>
             <ChevronRight size={13} strokeWidth={1.5} className="text-gray-400 shrink-0" />
             <span 
-              className="text-[#0a2766] font-bold break-words"
+              className="text-[#0a2766] font-bold break-words min-w-0 max-w-full inline-block"
               title={product.name}
             >
               {product.name}
