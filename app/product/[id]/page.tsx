@@ -347,6 +347,14 @@ export default function ProductDetailPage() {
     };
   }, []);
 
+  const isTabletOrIpadViewport = () => {
+    if (typeof window === 'undefined') return false;
+    const w = window.innerWidth;
+    const isTouch = typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || (navigator as any).msMaxTouchPoints > 0);
+    // Strictly scoped to iPad and tablet resolutions (640px to 1024px, and touch devices up to 1180px)
+    return (w >= 640 && w <= 1024) || (isTouch && w >= 640 && w <= 1180);
+  };
+
   const forceScrollToTop = () => {
     if (typeof window === 'undefined') return;
     try {
@@ -376,8 +384,28 @@ export default function ProductDetailPage() {
     }
   };
 
+  // Explicitly ensures breadcrumbs are visible on iPad and tablet viewports when opening any product
+  const ensureBreadcrumbVisibleOnTablet = () => {
+    if (typeof window === 'undefined') return;
+    if (!isTabletOrIpadViewport()) return;
+
+    forceScrollToTop();
+
+    const bc = document.getElementById('product-breadcrumbs');
+    const header = document.querySelector('header');
+    const headerHeight = header ? header.offsetHeight : 124;
+
+    if (bc) {
+      const rect = bc.getBoundingClientRect();
+      if (rect.top < headerHeight || window.scrollY > 0) {
+        forceScrollToTop();
+      }
+    }
+  };
+
   useIsomorphicLayoutEffect(() => {
     forceScrollToTop();
+    ensureBreadcrumbVisibleOnTablet();
     if (carouselRef.current) {
       carouselRef.current.scrollLeft = 0;
     }
@@ -385,12 +413,32 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     forceScrollToTop();
-    const rId = requestAnimationFrame(forceScrollToTop);
+    ensureBreadcrumbVisibleOnTablet();
+    const rId = requestAnimationFrame(() => {
+      forceScrollToTop();
+      ensureBreadcrumbVisibleOnTablet();
+    });
     const t0 = setTimeout(forceScrollToTop, 10);
     const t1 = setTimeout(forceScrollToTop, 50);
     const t2 = setTimeout(forceScrollToTop, 150);
     const t3 = setTimeout(forceScrollToTop, 300);
     const t4 = setTimeout(forceScrollToTop, 500);
+
+    // iPad & Tablet specific timers to counteract WebKit scroll retention on product opening
+    let tabletTimers: NodeJS.Timeout[] = [];
+    if (isTabletOrIpadViewport()) {
+      const delays = [20, 80, 200, 350, 500, 750, 1000, 1300];
+      tabletTimers = delays.map((ms) => setTimeout(ensureBreadcrumbVisibleOnTablet, ms));
+    }
+
+    // Yield control to user touch/scroll gestures once they intentionally interact
+    const onUserInteraction = () => {
+      tabletTimers.forEach(clearTimeout);
+      tabletTimers = [];
+    };
+    window.addEventListener('touchstart', onUserInteraction, { passive: true });
+    window.addEventListener('pointerdown', onUserInteraction, { passive: true });
+    window.addEventListener('wheel', onUserInteraction, { passive: true });
 
     setActiveImageIndex(0);
     if (carouselRef.current) {
@@ -402,7 +450,10 @@ export default function ProductDetailPage() {
       setLoading(false);
     }
 
-    const onPageShow = () => forceScrollToTop();
+    const onPageShow = () => {
+      forceScrollToTop();
+      ensureBreadcrumbVisibleOnTablet();
+    };
     window.addEventListener('pageshow', onPageShow);
 
     return () => {
@@ -412,6 +463,10 @@ export default function ProductDetailPage() {
       clearTimeout(t2);
       clearTimeout(t3);
       clearTimeout(t4);
+      tabletTimers.forEach(clearTimeout);
+      window.removeEventListener('touchstart', onUserInteraction);
+      window.removeEventListener('pointerdown', onUserInteraction);
+      window.removeEventListener('wheel', onUserInteraction);
       window.removeEventListener('pageshow', onPageShow);
     };
   }, [id]);
@@ -627,11 +682,27 @@ export default function ProductDetailPage() {
     prevLoadingRef.current = loading;
     if (wasLoading && !loading && product && typeof window !== 'undefined') {
       forceScrollToTop();
-      const rId = requestAnimationFrame(forceScrollToTop);
-      const t1 = setTimeout(forceScrollToTop, 50);
-      const t2 = setTimeout(forceScrollToTop, 150);
-      const t3 = setTimeout(forceScrollToTop, 350);
-      const t4 = setTimeout(forceScrollToTop, 600);
+      ensureBreadcrumbVisibleOnTablet();
+      const rId = requestAnimationFrame(() => {
+        forceScrollToTop();
+        ensureBreadcrumbVisibleOnTablet();
+      });
+      const t1 = setTimeout(() => {
+        forceScrollToTop();
+        ensureBreadcrumbVisibleOnTablet();
+      }, 50);
+      const t2 = setTimeout(() => {
+        forceScrollToTop();
+        ensureBreadcrumbVisibleOnTablet();
+      }, 150);
+      const t3 = setTimeout(() => {
+        forceScrollToTop();
+        ensureBreadcrumbVisibleOnTablet();
+      }, 350);
+      const t4 = setTimeout(() => {
+        forceScrollToTop();
+        ensureBreadcrumbVisibleOnTablet();
+      }, 600);
       return () => {
         cancelAnimationFrame(rId);
         clearTimeout(t1);
@@ -750,7 +821,7 @@ export default function ProductDetailPage() {
       <div className="min-h-screen bg-white font-sans flex flex-col">
         <Header />
         <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 md:pt-10 lg:pt-8 pb-10 animate-pulse min-h-[85vh]">
-          <div className="h-4 w-60 bg-gray-200 rounded-md mb-8"></div>
+          <div id="product-breadcrumbs" className="h-4 w-60 bg-gray-200 rounded-md mb-8"></div>
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-12 mb-12">
             <div className="w-full sm:w-[80%] md:w-[65%] lg:w-[45%] xl:w-[40%] aspect-square bg-gray-100 rounded-2xl sm:rounded-3xl lg:rounded-[32px]"></div>
             <div className="flex-1 flex flex-col space-y-4 pt-2">
