@@ -343,7 +343,12 @@ export default function ProductDetailPage() {
   const forceScrollToTop = () => {
     if (typeof window === 'undefined') return;
     try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       window.scrollTo(0, 0);
+      if (document.scrollingElement) {
+        document.scrollingElement.scrollTop = 0;
+        document.scrollingElement.scrollLeft = 0;
+      }
       if (document.documentElement) {
         document.documentElement.scrollTop = 0;
         document.documentElement.scrollLeft = 0;
@@ -352,8 +357,11 @@ export default function ProductDetailPage() {
         document.body.scrollTop = 0;
         document.body.scrollLeft = 0;
       }
-      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-    } catch (e) {}
+    } catch (e) {
+      try {
+        window.scrollTo(0, 0);
+      } catch (e2) {}
+    }
   };
 
   useIsomorphicLayoutEffect(() => {
@@ -366,9 +374,11 @@ export default function ProductDetailPage() {
   useEffect(() => {
     forceScrollToTop();
     const rId = requestAnimationFrame(forceScrollToTop);
+    const t0 = setTimeout(forceScrollToTop, 10);
     const t1 = setTimeout(forceScrollToTop, 50);
     const t2 = setTimeout(forceScrollToTop, 150);
-    const t3 = setTimeout(forceScrollToTop, 350);
+    const t3 = setTimeout(forceScrollToTop, 300);
+    const t4 = setTimeout(forceScrollToTop, 500);
 
     setActiveImageIndex(0);
     if (carouselRef.current) {
@@ -385,9 +395,11 @@ export default function ProductDetailPage() {
 
     return () => {
       cancelAnimationFrame(rId);
+      clearTimeout(t0);
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
+      clearTimeout(t4);
       window.removeEventListener('pageshow', onPageShow);
     };
   }, [id]);
@@ -764,10 +776,10 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-white font-sans flex flex-col">
       <Header />
 
-      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 md:pt-7 lg:pt-8 pb-10 min-h-[80vh]">
+      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-7 md:pt-8 lg:pt-8 pb-10 min-h-[80vh]">
         
         {/* Breadcrumbs Navigation */}
-        <div className="w-full mb-4 sm:mb-6 lg:mb-8 relative z-10">
+        <div id="product-breadcrumbs" className="w-full mb-4 sm:mb-6 lg:mb-8 relative z-10 scroll-mt-36">
           <nav 
             aria-label="Breadcrumb"
             className="flex flex-wrap items-center gap-x-1.5 sm:gap-x-2.5 gap-y-1.5 text-[12px] sm:text-[13px] md:text-[14px] text-[#363636] py-1 leading-normal"
@@ -968,18 +980,20 @@ export default function ProductDetailPage() {
                   <ChevronDown 
                     size={22} 
                     strokeWidth={1.5} 
-                    className={`shrink-0 ml-2 text-[#0a2766] transition-transform duration-200 ${
+                    className={`shrink-0 ml-2 text-[#0a2766] transition-transform duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] ${
                       isSectionOpen ? 'rotate-180' : 'rotate-0'
                     }`} 
                   />
                 </button>
-                {isSectionOpen && (
-                  <div className="p-4 sm:p-5 pt-0 mt-0">
-                    <div className="pt-4">
-                      {section.content}
+                <div className={`smooth-accordion-grid ${isSectionOpen ? 'is-open' : ''}`}>
+                  <div className="smooth-accordion-inner">
+                    <div className="smooth-accordion-content p-4 sm:p-5 pt-0 mt-0">
+                      <div className="pt-4">
+                        {section.content}
+                      </div>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
@@ -1120,7 +1134,6 @@ export default function ProductDetailPage() {
                   <Link
                     key={relProd.id}
                     href={prodUrl}
-                    scroll={false}
                     onClick={(e) => {
                       if (carouselHasMovedRef.current) {
                         e.preventDefault();

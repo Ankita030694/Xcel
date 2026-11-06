@@ -519,13 +519,6 @@ export default function ProductsPage() {
                   scroll={true}
                   key={product.id} 
                   onClick={() => {
-                    if (typeof window !== 'undefined') {
-                      try {
-                        window.scrollTo(0, 0);
-                        if (document.documentElement) document.documentElement.scrollTop = 0;
-                        if (document.body) document.body.scrollTop = 0;
-                      } catch (err) {}
-                    }
                     try {
                       sessionStorage.setItem(`xcel_prod_${product.id}`, JSON.stringify(product));
                       if (product.slug) {
