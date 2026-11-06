@@ -211,20 +211,39 @@ body {
 .xcel-prose ul li {
   position: relative;
   padding-left: 1.75rem;
-  font-size: 15.5px;
-  line-height: 1.75;
+  font-size: 16.5px;
+  line-height: 1.8;
   color: #374151;
+}
+
+@media (min-width: 640px) {
+  .xcel-prose ul li {
+    font-size: 17px;
+  }
 }
 
 .xcel-prose ul li::before {
   content: "";
   position: absolute;
   left: 0.25rem;
-  top: 0.65rem;
-  width: 0.5rem;
-  height: 0.5rem;
+  top: 0.68em;
+  width: 0.45rem;
+  height: 0.45rem;
   border-radius: 9999px;
   background-color: #3b5b95;
+}
+
+/* Ensure paragraphs inside list items don't inherit top/bottom block margins that break bullet alignment */
+.xcel-prose ul li > p,
+.xcel-prose ol li > p {
+  margin: 0;
+  display: inline;
+}
+
+.xcel-prose ul li > p + p,
+.xcel-prose ol li > p + p {
+  display: block;
+  margin-top: 0.5rem;
 }
 
 .xcel-prose ol {
@@ -236,10 +255,17 @@ body {
 
 .xcel-prose ol li {
   padding-left: 0.5rem;
-  font-size: 16px;
-  line-height: 1.75;
+  font-size: 16.5px;
+  line-height: 1.8;
+  color: #374151;
   margin-top: 0.4rem;
   margin-bottom: 0.4rem;
+}
+
+@media (min-width: 640px) {
+  .xcel-prose ol li {
+    font-size: 17px;
+  }
 }
 
 .xcel-prose table {
@@ -253,9 +279,24 @@ body {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-.xcel-prose th {
+/* Table Header & Any Blue Background in Tables: Guarantee Pure White Text */
+.xcel-prose table thead,
+.xcel-prose table thead tr,
+.xcel-prose table thead th,
+.xcel-prose table th,
+.xcel-prose th,
+.xcel-prose table tr.bg-\[\#0a2766\],
+.xcel-prose table [class*="bg-[#0a2766]"],
+.xcel-prose table [class*="bg-[#3b5b95]"],
+.xcel-prose table [style*="background-color: #0a2766"],
+.xcel-prose table [style*="background-color: rgb(10, 39, 102)"],
+.xcel-prose table [style*="background-color: #3b5b95"],
+.xcel-prose table [style*="background-color: rgb(59, 91, 149)"] {
   background-color: #0a2766;
-  color: #ffffff;
+  color: #ffffff !important;
+}
+
+.xcel-prose th {
   padding: 0.875rem 1.25rem;
   font-weight: 700;
   font-size: 0.85rem;
@@ -263,6 +304,44 @@ body {
   text-transform: uppercase;
   text-align: left;
   border: 1px solid #0d3282;
+  color: #ffffff !important;
+}
+
+/* Ensure ALL child elements inside table headers or blue backgrounds are pure white */
+.xcel-prose table th *,
+.xcel-prose th *,
+.xcel-prose table thead *,
+.xcel-prose table [class*="bg-[#0a2766]"] *,
+.xcel-prose table [class*="bg-[#3b5b95]"] *,
+.xcel-prose table [style*="background-color: #0a2766"] *,
+.xcel-prose table [style*="background-color: rgb(10, 39, 102)"] *,
+.xcel-prose table [style*="background-color: #3b5b95"] *,
+.xcel-prose table [style*="background-color: rgb(59, 91, 149)"] * {
+  color: #ffffff !important;
+}
+
+/* Reset paragraph margins and inherit white color inside table headers */
+.xcel-prose table th p,
+.xcel-prose th p {
+  margin: 0 !important;
+  color: #ffffff !important;
+  font-size: inherit;
+  line-height: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+}
+
+.xcel-prose table th strong,
+.xcel-prose th strong {
+  color: #ffffff !important;
+}
+
+.xcel-prose table td p,
+.xcel-prose td p {
+  margin: 0 !important;
+  font-size: inherit;
+  line-height: inherit;
 }
 
 .xcel-prose td {

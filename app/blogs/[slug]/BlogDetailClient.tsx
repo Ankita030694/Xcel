@@ -311,7 +311,7 @@ export default function BlogDetailClient({
                               {section.table.headers.map((h, hIdx) => (
                                 <th
                                   key={hIdx}
-                                  className="py-3.5 px-4 sm:px-5 font-bold text-xs sm:text-sm tracking-wide uppercase"
+                                  className="py-3.5 px-4 sm:px-5 font-bold text-xs sm:text-sm tracking-wide uppercase text-white"
                                 >
                                   {h}
                                 </th>

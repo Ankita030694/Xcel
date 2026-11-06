@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
@@ -162,11 +162,23 @@ function saveProductToCache(id: string, data: any) {
 const normalizeBgColor = (col: string | undefined | null): string => {
   if (!col) return '#ffffff';
   const trimmed = String(col).trim().toLowerCase();
-  if (trimmed === '#f4f5f9' || trimmed === '#f8f9fc' || trimmed === '#ffffff' || trimmed === '#fff') {
+  if (trimmed === '#f4f5f9' || trimmed === '#f4f5f8' || trimmed === '#f8f9fc' || trimmed === '#ffffff' || trimmed === '#fff') {
     return '#ffffff';
   }
   return col;
 };
+
+// Card-specific variant: returns #F4F5F8 for product cards (products page & related products carousel)
+const normalizeCardBgColor = (col: string | undefined | null): string => {
+  if (!col) return '#F4F5F8';
+  const trimmed = String(col).trim().toLowerCase();
+  if (trimmed === '#f4f5f9' || trimmed === '#f4f5f8' || trimmed === '#f8f9fc' || trimmed === '#ffffff' || trimmed === '#fff') {
+    return '#F4F5F8';
+  }
+  return col;
+};
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export default function ProductDetailPage() {
   const params = useParams();
@@ -174,9 +186,30 @@ export default function ProductDetailPage() {
 
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  
+  const [prevId, setPrevId] = useState<string>(id);
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [loadingRelated, setLoadingRelated] = useState<boolean>(true);
+  const [activeSection, setActiveSection] = useState<string | null>('features');
+  const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+
+  if (id !== prevId) {
+    setPrevId(id);
+    const cached = getProductFromCache(id);
+    if (cached) {
+      setProduct(cached);
+      setLoading(false);
+    } else {
+      setProduct(null);
+      setLoading(true);
+    }
+    setActiveImageIndex(0);
+    setActiveSection('features');
+    setMobileExpanded(null);
+    setRelatedProducts([]);
+    setLoadingRelated(true);
+  }
+
   const carouselRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
@@ -200,7 +233,9 @@ export default function ProductDetailPage() {
         const cardWidth = firstCard.offsetWidth;
         const style = window.getComputedStyle(carouselRef.current);
         const gap = parseFloat(style.columnGap || style.gap || '0') || 16;
-        const idx = Math.round(scrollLeft / (cardWidth + gap));
+        const isTablet = typeof window !== 'undefined' && window.innerWidth >= 640 && window.innerWidth < 1024;
+        const step = isTablet ? (cardWidth + gap) * 2 : (cardWidth + gap);
+        const idx = Math.round(scrollLeft / step);
         setActiveMobileCardIndex(Math.max(0, Math.min(idx, relatedProducts.length - 1)));
       }
     }
@@ -243,8 +278,10 @@ export default function ProductDetailPage() {
         const cardWidth = firstCard.offsetWidth;
         const style = window.getComputedStyle(container);
         const gap = parseFloat(style.columnGap || style.gap || '0') || 16;
+        const isTablet = typeof window !== 'undefined' && window.innerWidth >= 640 && window.innerWidth < 1024;
+        const step = isTablet ? (cardWidth + gap) * 2 : (cardWidth + gap);
         container.scrollTo({
-          left: idx * (cardWidth + gap),
+          left: idx * step,
           behavior: 'smooth'
         });
       }
@@ -292,9 +329,6 @@ export default function ProductDetailPage() {
     }
   };
   
-  const [activeSection, setActiveSection] = useState<string | null>('features');
-  const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
   const mobileAccordionRef = useRef<HTMLDivElement>(null);
   const desktopTabsRef = useRef<HTMLDivElement>(null);
@@ -321,6 +355,13 @@ export default function ProductDetailPage() {
       window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
     } catch (e) {}
   };
+
+  useIsomorphicLayoutEffect(() => {
+    forceScrollToTop();
+    if (carouselRef.current) {
+      carouselRef.current.scrollLeft = 0;
+    }
+  }, [id]);
 
   useEffect(() => {
     forceScrollToTop();
@@ -579,26 +620,7 @@ export default function ProductDetailPage() {
   }, [activeImageIndex]);
 
   const handleMobileAccordionClick = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
-    const isOpening = mobileExpanded !== id;
-    if (isOpening) {
-      setMobileExpanded(id);
-
-      // Wait for the accordion open transition to fully complete before scrolling,
-      // so the layout is stable and we only need a single scroll (no jerk).
-      const headerOffset = 135; // sticky header total height (ticker 34px + navbar 90px + spacing)
-      setTimeout(() => {
-        const btn = document.getElementById(`mobile-tab-${id}`);
-        if (btn) {
-          const btnTop = btn.getBoundingClientRect().top + window.pageYOffset;
-          window.scrollTo({
-            top: Math.max(0, btnTop - headerOffset),
-            behavior: 'smooth'
-          });
-        }
-      }, 420); // slightly after the 400ms grid-template-rows transition
-    } else {
-      setMobileExpanded(null);
-    }
+    setMobileExpanded(prev => (prev === id ? null : id));
   };
 
   const handleDesktopTabClick = (sectionId: string) => {
@@ -742,13 +764,13 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-white font-sans flex flex-col">
       <Header />
 
-      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 md:pt-10 lg:pt-8 pb-10 min-h-[80vh]">
+      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 md:pt-7 lg:pt-8 pb-10 min-h-[80vh]">
         
         {/* Breadcrumbs Navigation */}
         <div className="w-full mb-4 sm:mb-6 lg:mb-8 relative z-10">
           <nav 
             aria-label="Breadcrumb"
-            className="flex flex-row items-center gap-1.5 sm:gap-2.5 text-[12px] sm:text-[13px] md:text-[14px] text-[#363636] overflow-x-auto scrollbar-hide whitespace-nowrap py-1"
+            className="flex flex-wrap items-center gap-x-1.5 sm:gap-x-2.5 gap-y-1.5 text-[12px] sm:text-[13px] md:text-[14px] text-[#363636] py-1 leading-normal"
           >
             <Link href="/" className="hover:text-[#0a2766] transition-colors flex items-center gap-1.5 shrink-0" title="Home">
               <Home size={14} strokeWidth={1.75} className="text-[#3b5b95]" />
@@ -780,7 +802,7 @@ export default function ProductDetailPage() {
             </Link>
             <ChevronRight size={13} strokeWidth={1.5} className="text-gray-400 shrink-0" />
             <span 
-              className="text-[#0a2766] font-bold shrink-0 max-w-[200px] sm:max-w-[280px] md:max-w-[420px] lg:max-w-[500px] xl:max-w-none truncate"
+              className="text-[#0a2766] font-bold break-words"
               title={product.name}
             >
               {product.name}
@@ -946,20 +968,18 @@ export default function ProductDetailPage() {
                   <ChevronDown 
                     size={22} 
                     strokeWidth={1.5} 
-                    className={`shrink-0 ml-2 text-[#0a2766] transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                    className={`shrink-0 ml-2 text-[#0a2766] transition-transform duration-200 ${
                       isSectionOpen ? 'rotate-180' : 'rotate-0'
                     }`} 
                   />
                 </button>
-                <div className={`smooth-accordion-grid ${isSectionOpen ? 'is-open' : ''}`}>
-                  <div className="smooth-accordion-inner">
-                    <div className="smooth-accordion-content p-4 sm:p-5 pt-0 mt-0">
-                      <div className="pt-4">
-                        {section.content}
-                      </div>
+                {isSectionOpen && (
+                  <div className="p-4 sm:p-5 pt-0 mt-0">
+                    <div className="pt-4">
+                      {section.content}
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             );
           })}
@@ -1088,7 +1108,7 @@ export default function ProductDetailPage() {
               onPointerMove={handleCarouselPointerMove}
               onPointerUp={handleCarouselPointerUp}
               onPointerCancel={handleCarouselPointerUp}
-              className="flex flex-row gap-4 sm:gap-6 overflow-x-auto scrollbar-hide py-3 w-full sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8 snap-x snap-mandatory scroll-smooth touch-pan-y cursor-grab active:cursor-grabbing"
+              className="flex flex-row gap-4 sm:gap-6 overflow-x-auto scrollbar-hide py-3 w-full snap-x snap-mandatory scroll-smooth touch-pan-y cursor-grab active:cursor-grabbing"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {relatedProducts.map((relProd, pIdx) => {
@@ -1100,33 +1120,39 @@ export default function ProductDetailPage() {
                   <Link
                     key={relProd.id}
                     href={prodUrl}
+                    scroll={false}
                     onClick={(e) => {
                       if (carouselHasMovedRef.current) {
                         e.preventDefault();
                         return;
                       }
-                      forceScrollToTop();
                       try {
-                        sessionStorage.setItem(`xcel_prod_${relProd.id}`, JSON.stringify(relProd));
+                        saveProductToCache(relProd.id, relProd);
                         if (relProd.slug) {
-                          sessionStorage.setItem(`xcel_prod_${relProd.slug}`, JSON.stringify(relProd));
+                          saveProductToCache(relProd.slug, relProd);
+                        }
+                        if (relProd.customUrl) {
+                          saveProductToCache(relProd.customUrl, relProd);
                         }
                       } catch (err) {}
                     }}
                     onMouseEnter={() => {
                       try {
-                        sessionStorage.setItem(`xcel_prod_${relProd.id}`, JSON.stringify(relProd));
+                        saveProductToCache(relProd.id, relProd);
                         if (relProd.slug) {
-                          sessionStorage.setItem(`xcel_prod_${relProd.slug}`, JSON.stringify(relProd));
+                          saveProductToCache(relProd.slug, relProd);
+                        }
+                        if (relProd.customUrl) {
+                          saveProductToCache(relProd.customUrl, relProd);
                         }
                       } catch (e) {}
                     }}
-                    className={`group flex flex-col w-full min-w-full sm:min-w-[calc(50%-12px)] sm:w-[calc(50%-12px)] lg:min-w-0 lg:w-[310px] xl:w-[320px] shrink-0 bg-white rounded-2xl border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_28px_rgba(10,39,102,0.1)] hover:-translate-y-1.5 transition-all duration-300 overflow-hidden snap-start ${pIdx % 2 === 0 ? 'sm:snap-start' : 'sm:snap-align-none'} lg:snap-start cursor-pointer select-none`}
+                    className={`group flex flex-col w-full min-w-full max-w-full sm:min-w-[calc(50%-12px)] sm:max-w-[calc(50%-12px)] sm:w-[calc(50%-12px)] lg:min-w-0 lg:max-w-none lg:w-[310px] xl:w-[320px] shrink-0 bg-white rounded-2xl border border-gray-100 shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:shadow-[0_12px_28px_rgba(10,39,102,0.1)] hover:-translate-y-1.5 transition-all duration-300 overflow-hidden snap-start ${pIdx % 2 === 0 ? 'sm:snap-start' : 'sm:snap-align-none'} lg:snap-start cursor-pointer select-none`}
                   >
                     {/* Product Image */}
                     <div 
-                      className="relative w-full h-[235px] sm:h-[260px] bg-white p-2.5 sm:p-3 flex items-center justify-center overflow-hidden border-b border-gray-50"
-                      style={{ backgroundColor: normalizeBgColor((Array.isArray(relProd.imageBgColors) && relProd.imageBgColors[0]) || relProd.imageBgColor) }}
+                      className="relative w-full h-[235px] sm:h-[260px] bg-[#F4F5F8] p-2.5 sm:p-3 flex items-center justify-center overflow-hidden border-b border-gray-50"
+                      style={{ backgroundColor: normalizeCardBgColor((Array.isArray(relProd.imageBgColors) && relProd.imageBgColors[0]) || relProd.imageBgColor) }}
                     >
                       <img
                         src={prodImg}

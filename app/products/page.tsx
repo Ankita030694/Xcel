@@ -59,7 +59,7 @@ const getCardBgColor = (prod: any): string | undefined => {
   const col = (Array.isArray(prod?.imageBgColors) && prod.imageBgColors[0]) || prod?.imageBgColor;
   if (!col) return undefined;
   const trimmed = String(col).trim().toLowerCase();
-  if (trimmed === '#f4f5f9' || trimmed === '#f8f9fc' || trimmed === '#ffffff' || trimmed === '#fff') {
+  if (trimmed === '#f4f5f9' || trimmed === '#f4f5f8' || trimmed === '#f8f9fc' || trimmed === '#ffffff' || trimmed === '#fff') {
     return undefined;
   }
   return col;
@@ -519,6 +519,13 @@ export default function ProductsPage() {
                   scroll={true}
                   key={product.id} 
                   onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      try {
+                        window.scrollTo(0, 0);
+                        if (document.documentElement) document.documentElement.scrollTop = 0;
+                        if (document.body) document.body.scrollTop = 0;
+                      } catch (err) {}
+                    }
                     try {
                       sessionStorage.setItem(`xcel_prod_${product.id}`, JSON.stringify(product));
                       if (product.slug) {
@@ -539,7 +546,7 @@ export default function ProductsPage() {
                 
                 {/* Product Image */}
                 <div 
-                  className="w-[42%] sm:w-[44%] md:w-[45%] xl:w-full h-full xl:h-[260px] bg-white p-3 sm:p-4 md:p-5 xl:p-6 relative flex items-center justify-center flex-shrink-0 xl:border-b xl:border-gray-50"
+                  className="w-[42%] sm:w-[44%] md:w-[45%] xl:w-full h-full xl:h-[260px] bg-[#F4F5F8] p-3 sm:p-4 md:p-5 xl:p-6 relative flex items-center justify-center flex-shrink-0 xl:border-b xl:border-gray-50"
                   style={{ backgroundColor: getCardBgColor(product) }}
                 >
                   <img 
