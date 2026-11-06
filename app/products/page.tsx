@@ -182,14 +182,25 @@ export default function ProductsPage() {
   };
 
   const scrollToProductsHeading = (behavior: ScrollBehavior = 'smooth') => {
+    const banner = document.getElementById('hero-banner-section');
     const element = document.getElementById('products-heading') || document.getElementById('products-section');
     if (element) {
       const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+      const navbarHeight = isMobile ? 70 : 90;
       const headerOffset = isMobile ? 130 : 140;
       const rect = element.getBoundingClientRect();
       const currentScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
       const elementY = rect.top + currentScrollY;
-      const targetY = Math.max(0, Math.round(elementY - headerOffset));
+      const calculatedTargetY = Math.max(0, Math.round(elementY - headerOffset));
+
+      let minScrollToClearBanner = 0;
+      if (banner) {
+        const bannerRect = banner.getBoundingClientRect();
+        const bannerBottom = bannerRect.bottom + currentScrollY;
+        minScrollToClearBanner = Math.max(0, Math.round(bannerBottom - navbarHeight + 8));
+      }
+
+      const targetY = Math.max(calculatedTargetY, minScrollToClearBanner);
 
       window.scrollTo({
         top: targetY,
@@ -236,15 +247,16 @@ export default function ProductsPage() {
   };
 
   useEffect(() => {
-    // 1. Scroll to top ONLY on fresh navigations (no category in URL or storage).
-    //    When returning via browser back-button there will be a category hash/param
-    //    or a stored active category — in that case skip the scroll-to-top so
+    // 1. Scroll to top ONLY on fresh navigations (no category in URL or storage, no scroll flag).
+    //    When returning via browser back-button or breadcrumb there will be a category hash/param
+    //    or a stored active category / scroll flag — in that case skip the scroll-to-top so
     //    the auto-scroll-to-products logic below can position correctly.
     if (typeof window !== 'undefined') {
       const hasHash = Boolean(window.location.hash && window.location.hash.substring(1));
       const hasCategoryParam = Boolean(new URLSearchParams(window.location.search).get('category'));
       const hasStoredCategory = Boolean(sessionStorage.getItem('xcel_active_category'));
-      const isReturning = hasHash || hasCategoryParam || hasStoredCategory;
+      const shouldScroll = sessionStorage.getItem('xcel_scroll_to_products') === 'true';
+      const isReturning = hasHash || hasCategoryParam || hasStoredCategory || shouldScroll;
       if (!isReturning) {
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
       }
@@ -254,7 +266,8 @@ export default function ProductsPage() {
       const hash = window.location.hash ? window.location.hash.substring(1) : '';
       const urlParams = new URLSearchParams(window.location.search);
       const categoryParam = urlParams.get('category') || '';
-      const targetId = hash || categoryParam;
+      const storedCategory = sessionStorage.getItem('xcel_active_category') || '';
+      const targetId = hash || categoryParam || storedCategory;
       if (targetId && categories.some(c => c.id === targetId)) {
         setActiveTab(targetId);
         try {
@@ -262,9 +275,6 @@ export default function ProductsPage() {
         } catch (e) {}
       } else {
         setActiveTab('washing');
-        try {
-          sessionStorage.removeItem('xcel_active_category');
-        } catch (e) {}
       }
     };
 
@@ -280,20 +290,25 @@ export default function ProductsPage() {
 
     syncCategoryFromUrlOrStorage();
 
-    // Auto-scroll on initial visit / navigation:
+    // Auto-scroll on initial visit / navigation / return:
     let autoScrollTimer: NodeJS.Timeout | null = null;
+    let autoScrollBackupTimer: NodeJS.Timeout | null = null;
     const shouldScrollToProducts = typeof window !== 'undefined' && sessionStorage.getItem('xcel_scroll_to_products') === 'true';
     if (shouldScrollToProducts) {
       setTimeout(() => {
         try {
           sessionStorage.removeItem('xcel_scroll_to_products');
         } catch (e) {}
-      }, 1000);
+      }, 1500);
 
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
       autoScrollTimer = setTimeout(() => {
         scrollToProductsHeading('smooth');
-      }, 150);
+      }, 100);
+
+      autoScrollBackupTimer = setTimeout(() => {
+        scrollToProductsHeading('smooth');
+      }, 350);
     } else {
       // Auto-scroll to the category header and products when navigating with a specific category
       // (e.g. category card click, engineering excellence, ?category= / #category, or back-navigation
@@ -309,7 +324,7 @@ export default function ProductsPage() {
           if (typeof window !== 'undefined') {
             scrollToCategoryHeader('smooth');
           }
-        }, 450);
+        }, 300);
       }
     }
 
@@ -319,6 +334,7 @@ export default function ProductsPage() {
         sessionStorage.removeItem('xcel_active_category');
       } catch (e) {}
       if (autoScrollTimer) clearTimeout(autoScrollTimer);
+      if (autoScrollBackupTimer) clearTimeout(autoScrollBackupTimer);
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
       scrollTimerRef.current = setTimeout(() => {
         scrollToProductsHeading('smooth');
@@ -327,15 +343,17 @@ export default function ProductsPage() {
 
     const onPopOrHash = () => {
       syncCategoryFromUrlOrStorage();
-      const hasSpecificCategory = typeof window !== 'undefined' && (
+      const shouldScroll = typeof window !== 'undefined' && (
+        sessionStorage.getItem('xcel_scroll_to_products') === 'true' ||
         Boolean(window.location.hash && window.location.hash.substring(1)) ||
-        Boolean(new URLSearchParams(window.location.search).get('category'))
+        Boolean(new URLSearchParams(window.location.search).get('category')) ||
+        Boolean(sessionStorage.getItem('xcel_active_category'))
       );
-      if (hasSpecificCategory) {
+      if (shouldScroll) {
         if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
         scrollTimerRef.current = setTimeout(() => {
-          scrollToCategoryHeader('smooth');
-        }, 80);
+          scrollToProductsHeading('smooth');
+        }, 50);
       }
     };
 
@@ -345,6 +363,7 @@ export default function ProductsPage() {
     window.addEventListener('scroll-to-products-heading', handleScrollToProductsHeading);
     return () => {
       if (autoScrollTimer) clearTimeout(autoScrollTimer);
+      if (autoScrollBackupTimer) clearTimeout(autoScrollBackupTimer);
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
       if (unlockTimerRef.current) clearTimeout(unlockTimerRef.current);
       window.removeEventListener('hashchange', onPopOrHash);
@@ -358,7 +377,8 @@ export default function ProductsPage() {
     const hash = typeof window !== 'undefined' && window.location.hash ? window.location.hash.substring(1) : '';
     const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
     const categoryParam = urlParams.get('category') || '';
-    const targetId = hash || categoryParam;
+    const storedCategory = typeof window !== 'undefined' ? sessionStorage.getItem('xcel_active_category') || '' : '';
+    const targetId = hash || categoryParam || storedCategory;
     const isGenericProductsNav = typeof window !== 'undefined' && sessionStorage.getItem('xcel_scroll_to_products') === 'true';
 
     if (targetId && categories.some(c => c.id === targetId)) {
@@ -371,9 +391,6 @@ export default function ProductsPage() {
       }
     } else {
       setActiveTab('washing');
-      try {
-        sessionStorage.removeItem('xcel_active_category');
-      } catch (e) {}
     }
   }, [pathname]);
 
@@ -423,7 +440,7 @@ export default function ProductsPage() {
       <Header />
 
       {/* Hero Banner Section */}
-      <section className="w-full bg-[#f3f5f8]">
+      <section id="hero-banner-section" className="w-full bg-[#f3f5f8]">
          <img 
            src="/banners/product-overview-banner.webp" 
            alt="Product Overview - From Washing To Finishing" 
@@ -524,6 +541,8 @@ export default function ProductsPage() {
                       if (product.slug) {
                         sessionStorage.setItem(`xcel_prod_${product.slug}`, JSON.stringify(product));
                       }
+                      sessionStorage.setItem('xcel_scroll_to_products', 'true');
+                      sessionStorage.setItem('xcel_active_category', activeTab);
                     } catch (e) {}
                   }}
                   onMouseEnter={() => {

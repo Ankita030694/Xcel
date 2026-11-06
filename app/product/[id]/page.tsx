@@ -790,10 +790,13 @@ export default function ProductDetailPage() {
             </Link>
             <ChevronRight size={13} strokeWidth={1.5} className="text-gray-400 shrink-0" />
             <Link 
-              href="/products"
+              href={product.categoryId ? `/products?category=${product.categoryId}#${product.categoryId}` : "/products"}
               onClick={() => {
                 try {
-                  sessionStorage.removeItem('xcel_active_category');
+                  sessionStorage.setItem('xcel_scroll_to_products', 'true');
+                  if (product.categoryId) {
+                    sessionStorage.setItem('xcel_active_category', product.categoryId);
+                  }
                 } catch (e) {}
               }}
               className="hover:text-[#0a2766] font-medium transition-colors shrink-0"
@@ -805,6 +808,7 @@ export default function ProductDetailPage() {
               href={`/products?category=${product.categoryId}#${product.categoryId}`} 
               onClick={() => {
                 try {
+                  sessionStorage.setItem('xcel_scroll_to_products', 'true');
                   sessionStorage.setItem('xcel_active_category', product.categoryId);
                 } catch (e) {}
               }}
