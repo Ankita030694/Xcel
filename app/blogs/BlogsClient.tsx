@@ -305,7 +305,21 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
           return tB - tA;
         });
 
-        setArticles(finalArticles);
+        // Only update state if articles actually changed to prevent image flickering and redundant re-renders
+        setArticles((prev) => {
+          if (
+            prev.length === finalArticles.length &&
+            prev.every(
+              (p, i) =>
+                p.slug === finalArticles[i].slug &&
+                p.imageSrc === finalArticles[i].imageSrc &&
+                p.title === finalArticles[i].title
+            )
+          ) {
+            return prev;
+          }
+          return finalArticles;
+        });
 
         // Notify Footer and other components with updated articles
         if (typeof window !== "undefined") {
@@ -411,9 +425,9 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10">
-            {filteredArticles.map((article) => (
+            {filteredArticles.map((article, idx) => (
             <article
-              key={article.id || article.slug}
+              key={article.slug}
               className="flex flex-col justify-between group cursor-pointer bg-white rounded-2xl p-4 sm:p-5 border border-gray-150 hover:border-[#3b5b95]/40 hover:shadow-xl transition-all duration-300"
             >
               <div>
@@ -424,6 +438,8 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
                       src={article.imageSrc || "/blog1/Blog 1- 1080 x 1080.svg"}
                       alt={article.title}
                       fill
+                      priority={idx < 6}
+                      loading={idx < 6 ? "eager" : "lazy"}
                       unoptimized
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       className="object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"

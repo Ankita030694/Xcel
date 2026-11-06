@@ -220,6 +220,7 @@ export default function ProductDetailPage() {
   const carouselStartXRef = useRef(0);
   const carouselScrollLeftRef = useRef(0);
   const carouselHasMovedRef = useRef(false);
+  const prevLoadingRef = useRef(loading);
 
   const updateScrollButtons = () => {
     if (carouselRef.current) {
@@ -589,6 +590,14 @@ export default function ProductDetailPage() {
         // Only display products belonging strictly to this category (no random products from other categories)
         if (isMounted) {
           setRelatedProducts(sameCategoryProducts);
+          // Pre-cache all related products immediately so navigation is instant without any loading flicker
+          try {
+            sameCategoryProducts.forEach((p: any) => {
+              if (p.id) saveProductToCache(p.id, p);
+              if (p.slug) saveProductToCache(p.slug, p);
+              if (p.customUrl) saveProductToCache(p.customUrl, p);
+            });
+          } catch (e) {}
         }
       } catch (err) {
         console.error("Failed to load related products:", err);
@@ -614,7 +623,9 @@ export default function ProductDetailPage() {
   }, [relatedProducts]);
 
   useEffect(() => {
-    if (!loading && product && typeof window !== 'undefined') {
+    const wasLoading = prevLoadingRef.current;
+    prevLoadingRef.current = loading;
+    if (wasLoading && !loading && product && typeof window !== 'undefined') {
       forceScrollToTop();
       const rId = requestAnimationFrame(forceScrollToTop);
       const t1 = setTimeout(forceScrollToTop, 50);
@@ -1240,9 +1251,6 @@ export default function ProductDetailPage() {
                           saveProductToCache(relProd.customUrl, relProd);
                         }
                       } catch (err) {}
-                      if (typeof window !== 'undefined') {
-                        forceScrollToTop();
-                      }
                     }}
                     onMouseEnter={() => {
                       try {
