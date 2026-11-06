@@ -294,6 +294,8 @@ export default function ProductsPage() {
     let autoScrollTimer: NodeJS.Timeout | null = null;
     let autoScrollBackupTimer: NodeJS.Timeout | null = null;
     const shouldScrollToProducts = typeof window !== 'undefined' && sessionStorage.getItem('xcel_scroll_to_products') === 'true';
+    const isMobileResponsive = typeof window !== 'undefined' && window.innerWidth < 1024;
+
     if (shouldScrollToProducts) {
       setTimeout(() => {
         try {
@@ -301,25 +303,28 @@ export default function ProductsPage() {
         } catch (e) {}
       }, 1500);
 
-      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
-      autoScrollTimer = setTimeout(() => {
-        scrollToProductsHeading('smooth');
-      }, 100);
+      // In mobile responsive viewports, do NOT auto-scroll
+      if (!isMobileResponsive) {
+        if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+        autoScrollTimer = setTimeout(() => {
+          scrollToProductsHeading('smooth');
+        }, 100);
 
-      autoScrollBackupTimer = setTimeout(() => {
-        scrollToProductsHeading('smooth');
-      }, 350);
+        autoScrollBackupTimer = setTimeout(() => {
+          scrollToProductsHeading('smooth');
+        }, 350);
+      }
     } else {
       // Auto-scroll to the category header and products when navigating with a specific category
       // (e.g. category card click, engineering excellence, ?category= / #category, or back-navigation
-      // with a stored category)
+      // with a stored category) - disabled in mobile responsive
       const hasSpecificCategory = typeof window !== 'undefined' && (
         Boolean(window.location.hash && window.location.hash.substring(1)) ||
         Boolean(new URLSearchParams(window.location.search).get('category')) ||
         Boolean(sessionStorage.getItem('xcel_active_category'))
       );
 
-      if (hasSpecificCategory) {
+      if (hasSpecificCategory && !isMobileResponsive) {
         autoScrollTimer = setTimeout(() => {
           if (typeof window !== 'undefined') {
             scrollToCategoryHeader('smooth');
@@ -333,6 +338,9 @@ export default function ProductsPage() {
       try {
         sessionStorage.removeItem('xcel_active_category');
       } catch (e) {}
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+      if (isMobile) return;
+
       if (autoScrollTimer) clearTimeout(autoScrollTimer);
       if (autoScrollBackupTimer) clearTimeout(autoScrollBackupTimer);
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
@@ -343,6 +351,14 @@ export default function ProductsPage() {
 
     const onPopOrHash = () => {
       syncCategoryFromUrlOrStorage();
+      const isMobile = typeof window !== 'undefined' && window.innerWidth < 1024;
+      if (isMobile) {
+        try {
+          sessionStorage.removeItem('xcel_scroll_to_products');
+        } catch (e) {}
+        return;
+      }
+
       const shouldScroll = typeof window !== 'undefined' && (
         sessionStorage.getItem('xcel_scroll_to_products') === 'true' ||
         Boolean(window.location.hash && window.location.hash.substring(1)) ||
@@ -380,10 +396,11 @@ export default function ProductsPage() {
     const storedCategory = typeof window !== 'undefined' ? sessionStorage.getItem('xcel_active_category') || '' : '';
     const targetId = hash || categoryParam || storedCategory;
     const isGenericProductsNav = typeof window !== 'undefined' && sessionStorage.getItem('xcel_scroll_to_products') === 'true';
+    const isMobileResponsive = typeof window !== 'undefined' && window.innerWidth < 1024;
 
     if (targetId && categories.some(c => c.id === targetId)) {
       setActiveTab(targetId);
-      if (!isGenericProductsNav) {
+      if (!isGenericProductsNav && !isMobileResponsive) {
         if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
         scrollTimerRef.current = setTimeout(() => {
           scrollToCategoryHeader('smooth');
