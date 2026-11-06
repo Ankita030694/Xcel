@@ -195,30 +195,37 @@ export default function BlogDetailClient({
 
             {/* Sticky Consultation CTA Card */}
             <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-7 shadow-sm">
-              <div className="flex items-center gap-1.5 text-amber-500 mb-3">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
-                ))}
-                <span className="text-xs font-bold text-[#0a2766] ml-1.5">5.0</span>
+              <div className="flex flex-wrap items-center gap-1.5 text-amber-500 mb-3">
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  ))}
+                </div>
+                <span className="text-xs font-bold text-[#0a2766] ml-1">5.0</span>
                 <span className="text-xs text-gray-500">
-                  (7,000+ Active Installations Across India)
+                  (8,000+ Active Installations Across India)
                 </span>
               </div>
 
-              <h3 className="text-lg font-bold text-[#0a2766] mb-2">
-                Consult With XCEL Engineers
+              <h3 className="text-lg font-bold text-[#0a2766] mb-2.5">
+                Plan Your Laundry With XCEL
               </h3>
 
-              <p className="text-[14px] leading-[1.65] text-gray-600 mb-5">
-                Need customized machine sizing, load audits, or a complete plant ROI model? Our technical project consultation is complimentary.
-              </p>
+              <div className="text-[14px] leading-[1.65] text-gray-600 mb-5 space-y-2">
+                <p>
+                  Not sure which machines you need or what capacity is right for your laundry?
+                </p>
+                <p>
+                  Tell us about your laundry requirements and our team will help you choose the right machines and plan your setup.
+                </p>
+              </div>
 
               <Link
                 href="/contact"
                 className="w-full inline-flex items-center justify-center gap-2 bg-[#0a2766] text-white hover:bg-[#3b5b95] font-semibold text-sm py-3 px-5 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md group"
               >
                 <PhoneCall className="w-4 h-4" />
-                <span>Request Free Assessment</span>
+                <span>Request Free Consultation</span>
                 <ArrowUpRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </Link>
             </div>
