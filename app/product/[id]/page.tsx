@@ -352,8 +352,10 @@ export default function ProductDetailPage() {
       if ('scrollRestoration' in window.history) {
         window.history.scrollRestoration = 'manual';
       }
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       window.scrollTo(0, 0);
+      try {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+      } catch (err) {}
       if (document.scrollingElement) {
         document.scrollingElement.scrollTop = 0;
         document.scrollingElement.scrollLeft = 0;
@@ -365,19 +367,6 @@ export default function ProductDetailPage() {
       if (document.body) {
         document.body.scrollTop = 0;
         document.body.scrollLeft = 0;
-      }
-
-      // Explicitly ensure breadcrumbs element is visible on iPad / tablet viewports
-      const bc = document.getElementById('product-breadcrumbs');
-      if (bc) {
-        const rect = bc.getBoundingClientRect();
-        const header = document.querySelector('header');
-        const headerHeight = header ? header.offsetHeight : 124;
-        if (rect.top < headerHeight || window.scrollY > 5) {
-          try {
-            bc.scrollIntoView({ block: 'start', behavior: 'instant' as ScrollBehavior });
-          } catch (e2) {}
-        }
       }
     } catch (e) {
       try {
@@ -640,7 +629,7 @@ export default function ProductDetailPage() {
         clearTimeout(t4);
       };
     }
-  }, [loading, product]);
+  }, [loading, product, id]);
 
   useEffect(() => {
     // Only scroll within the horizontal thumbnail container, never scrolling the window
@@ -1236,6 +1225,7 @@ export default function ProductDetailPage() {
                   <Link
                     key={relProd.id}
                     href={prodUrl}
+                    scroll={true}
                     onClick={(e) => {
                       if (carouselHasMovedRef.current) {
                         e.preventDefault();
@@ -1250,6 +1240,9 @@ export default function ProductDetailPage() {
                           saveProductToCache(relProd.customUrl, relProd);
                         }
                       } catch (err) {}
+                      if (typeof window !== 'undefined') {
+                        forceScrollToTop();
+                      }
                     }}
                     onMouseEnter={() => {
                       try {
