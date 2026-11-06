@@ -25,15 +25,11 @@ export const metadata: Metadata = {
   description: "XCEL has been manufacturing high-performance industrial and commercial laundry equipment since 1994.",
   icons: {
     icon: [
-      { url: "/favicon.ico?v=3" },
-      { url: "/favicon-32x32.png?v=3", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-48x48.png?v=3", sizes: "48x48", type: "image/png" },
-      { url: "/favico.png?v=3", type: "image/png" },
+      { url: "/xcel.svg", type: "image/svg+xml" },
     ],
-    shortcut: "/favicon.ico?v=3",
+    shortcut: "/xcel.svg",
     apple: [
-      { url: "/apple-touch-icon.png?v=3", sizes: "180x180", type: "image/png" },
-      { url: "/favico.png?v=3" },
+      { url: "/xcel.svg", type: "image/svg+xml" },
     ],
   },
 };
@@ -50,11 +46,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <link rel="icon" href="/favicon.ico?v=3" sizes="any" />
-        <link rel="icon" href="/favicon-32x32.png?v=3" type="image/png" sizes="32x32" />
-        <link rel="icon" href="/favicon-48x48.png?v=3" type="image/png" sizes="48x48" />
-        <link rel="icon" href="/favico.png?v=3" type="image/png" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" />
+        <link rel="icon" href="/xcel.svg" type="image/svg+xml" sizes="any" />
+        <link rel="shortcut icon" href="/xcel.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/xcel.svg" />
         <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com" />
       </head>
