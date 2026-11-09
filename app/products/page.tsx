@@ -306,25 +306,15 @@ export default function ProductsPage() {
   };
 
   useEffect(() => {
-    // 1. Scroll handling: when returning from any product, guarantee the page starts at the very top (Y=0),
-    //    then smoothly auto-scrolls down until the banner goes above the sticky navbar.
+    // 1. Scroll handling: when returning to products or requesting products section,
+    //    align directly to the products heading without snapping to Y=0 (which causes the hero banner to blink/flicker).
     if (typeof window !== 'undefined') {
       const shouldScroll = sessionStorage.getItem('xcel_scroll_to_products') === 'true';
       if (shouldScroll) {
         if ('scrollRestoration' in window.history) {
           window.history.scrollRestoration = 'manual';
         }
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
-      } else {
-        const hasHash = Boolean(window.location.hash && window.location.hash.substring(1));
-        const hasCategoryParam = Boolean(new URLSearchParams(window.location.search).get('category'));
-        const hasStoredCategory = Boolean(sessionStorage.getItem('xcel_active_category'));
-        const isReturning = hasHash || hasCategoryParam || hasStoredCategory;
-        if (!isReturning) {
-          window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-        }
+        scrollToProductsHeading('instant' as ScrollBehavior);
       }
     }
 
@@ -365,9 +355,6 @@ export default function ProductsPage() {
       if ('scrollRestoration' in window.history) {
         window.history.scrollRestoration = 'manual';
       }
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
 
       setTimeout(() => {
         try {
@@ -376,13 +363,14 @@ export default function ProductsPage() {
       }, 1500);
 
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
+      scrollToProductsHeading('instant' as ScrollBehavior);
       autoScrollTimer = setTimeout(() => {
-        scrollToProductsHeading('smooth');
-      }, 120);
+        scrollToProductsHeading('instant' as ScrollBehavior);
+      }, 60);
 
       autoScrollBackupTimer = setTimeout(() => {
-        scrollToProductsHeading('smooth');
-      }, 380);
+        scrollToProductsHeading('instant' as ScrollBehavior);
+      }, 200);
     } else {
       // Auto-scroll to the category header and products when navigating with a specific category
       // (e.g. category card click, engineering excellence, ?category= / #category, or back-navigation
@@ -428,17 +416,12 @@ export default function ProductsPage() {
         if ('scrollRestoration' in window.history) {
           window.history.scrollRestoration = 'manual';
         }
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-        document.documentElement.scrollTop = 0;
-        document.body.scrollTop = 0;
 
         if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
-        scrollTimerRef.current = setTimeout(() => {
-          scrollToProductsHeading('smooth');
-        }, 120);
+        scrollToProductsHeading('instant' as ScrollBehavior);
 
         if (isTabletOrIpadViewport()) {
-          setTimeout(ensureBreadcrumbVisibleOnTablet, 250);
+          setTimeout(ensureBreadcrumbVisibleOnTablet, 100);
         }
       }
     };
@@ -627,7 +610,8 @@ export default function ProductsPage() {
               return (
                 <Link 
                   href={productUrl} 
-                  scroll={true}
+                  scroll={false}
+                  prefetch={true}
                   key={product.id} 
                   onClick={() => {
                     try {
@@ -635,7 +619,6 @@ export default function ProductsPage() {
                       if (product.slug) {
                         sessionStorage.setItem(`xcel_prod_${product.slug}`, JSON.stringify(product));
                       }
-                      sessionStorage.setItem('xcel_scroll_to_products', 'true');
                       sessionStorage.setItem('xcel_active_category', activeTab);
                       sessionStorage.setItem('xcel_ensure_product_top', 'true');
                     } catch (e) {}

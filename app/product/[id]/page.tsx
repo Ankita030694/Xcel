@@ -1298,7 +1298,8 @@ export default function ProductDetailPage() {
                   <Link
                     key={relProd.id}
                     href={prodUrl}
-                    scroll={true}
+                    scroll={false}
+                    prefetch={true}
                     onClick={(e) => {
                       if (carouselHasMovedRef.current) {
                         e.preventDefault();
