@@ -263,7 +263,7 @@ export default function ProductsPage() {
       const rect = bc.getBoundingClientRect();
       // If breadcrumb is hiding behind or clipped by the sticky navbar on tablet/iPad
       if (rect.top < headerHeight + 16 && window.scrollY > 0) {
-        scrollToProductsHeading('instant' as ScrollBehavior);
+        scrollToProductsHeading('smooth');
       }
     }
   };
@@ -306,16 +306,19 @@ export default function ProductsPage() {
   };
 
   useEffect(() => {
-    // 1. Scroll handling: when returning to products or requesting products section,
-    //    align directly to the products heading without snapping to Y=0 (which causes the hero banner to blink/flicker).
+    // 1. Guarantee page starts at top cleanly without any flickering or jumping
     if (typeof window !== 'undefined') {
-      const shouldScroll = sessionStorage.getItem('xcel_scroll_to_products') === 'true';
-      if (shouldScroll) {
-        if ('scrollRestoration' in window.history) {
-          window.history.scrollRestoration = 'manual';
-        }
-        scrollToProductsHeading('instant' as ScrollBehavior);
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'manual';
       }
+      try {
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      } catch (e) {
+        window.scrollTo(0, 0);
+      }
+      try {
+        sessionStorage.removeItem('xcel_scroll_to_products');
+      } catch (e) {}
     }
 
     const syncCategoryFromUrlOrStorage = () => {
@@ -346,48 +349,42 @@ export default function ProductsPage() {
 
     syncCategoryFromUrlOrStorage();
 
-    // Auto-scroll on initial visit / navigation / return:
+    // 2. User interaction detection: cancel auto-scroll if user starts scrolling or touching manually
+    let hasUserInteracted = false;
     let autoScrollTimer: NodeJS.Timeout | null = null;
-    let autoScrollBackupTimer: NodeJS.Timeout | null = null;
-    const shouldScrollToProducts = typeof window !== 'undefined' && sessionStorage.getItem('xcel_scroll_to_products') === 'true';
+    let tabletSafetyTimer: NodeJS.Timeout | null = null;
 
-    if (shouldScrollToProducts) {
-      if ('scrollRestoration' in window.history) {
-        window.history.scrollRestoration = 'manual';
+    const onUserInteraction = () => {
+      hasUserInteracted = true;
+      if (autoScrollTimer) {
+        clearTimeout(autoScrollTimer);
+        autoScrollTimer = null;
       }
+    };
 
-      setTimeout(() => {
-        try {
-          sessionStorage.removeItem('xcel_scroll_to_products');
-        } catch (e) {}
-      }, 1500);
+    window.addEventListener('wheel', onUserInteraction, { passive: true });
+    window.addEventListener('touchstart', onUserInteraction, { passive: true });
+    window.addEventListener('touchmove', onUserInteraction, { passive: true });
+    window.addEventListener('pointerdown', onUserInteraction, { passive: true });
+    window.addEventListener('keydown', onUserInteraction, { passive: true });
 
-      if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
-      scrollToProductsHeading('instant' as ScrollBehavior);
-      autoScrollTimer = setTimeout(() => {
-        scrollToProductsHeading('instant' as ScrollBehavior);
-      }, 60);
-
-      autoScrollBackupTimer = setTimeout(() => {
-        scrollToProductsHeading('instant' as ScrollBehavior);
-      }, 200);
-    } else {
-      // Auto-scroll to the category header and products when navigating with a specific category
-      // (e.g. category card click, engineering excellence, ?category= / #category, or back-navigation
-      // with a stored category)
-      const hasSpecificCategory = typeof window !== 'undefined' && (
-        Boolean(window.location.hash && window.location.hash.substring(1)) ||
-        Boolean(new URLSearchParams(window.location.search).get('category')) ||
-        Boolean(sessionStorage.getItem('xcel_active_category'))
-      );
-
-      if (hasSpecificCategory) {
-        autoScrollTimer = setTimeout(() => {
-          if (typeof window !== 'undefined') {
-            scrollToCategoryHeader('smooth');
-          }
-        }, 300);
+    // 3. Auto-scroll:
+    // Whenever any user reaches products page from anywhere, the page loads at the top,
+    // pauses briefly (~380ms) for layout & image rendering to settle,
+    // then smoothly auto-scrolls down until the banner goes completely under the sticky navbar.
+    autoScrollTimer = setTimeout(() => {
+      if (!hasUserInteracted && typeof window !== 'undefined') {
+        scrollToProductsHeading('smooth');
       }
+    }, 380);
+
+    // Tablet/iPad safety check: ensure breadcrumbs remain clear below navbar after smooth scroll completes
+    if (isTabletOrIpadViewport()) {
+      tabletSafetyTimer = setTimeout(() => {
+        if (!hasUserInteracted) {
+          ensureBreadcrumbVisibleOnTablet();
+        }
+      }, 1000);
     }
 
     const handleScrollToProductsHeading = () => {
@@ -397,52 +394,31 @@ export default function ProductsPage() {
       } catch (e) {}
 
       if (autoScrollTimer) clearTimeout(autoScrollTimer);
-      if (autoScrollBackupTimer) clearTimeout(autoScrollBackupTimer);
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
       scrollTimerRef.current = setTimeout(() => {
         scrollToProductsHeading('smooth');
-      }, 10);
+      }, 50);
     };
 
     const onPopOrHash = () => {
       syncCategoryFromUrlOrStorage();
-      const shouldScroll = typeof window !== 'undefined' && (
-        sessionStorage.getItem('xcel_scroll_to_products') === 'true' ||
-        Boolean(window.location.hash && window.location.hash.substring(1)) ||
-        Boolean(new URLSearchParams(window.location.search).get('category')) ||
-        Boolean(sessionStorage.getItem('xcel_active_category'))
-      );
-      if (shouldScroll) {
-        if ('scrollRestoration' in window.history) {
-          window.history.scrollRestoration = 'manual';
-        }
-
-        if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
-        scrollToProductsHeading('instant' as ScrollBehavior);
-
-        if (isTabletOrIpadViewport()) {
-          setTimeout(ensureBreadcrumbVisibleOnTablet, 100);
-        }
-      }
     };
-
-    // Tablet & iPad specific timers to counteract WebKit scroll retention on overview page
-    let tabletTimers: NodeJS.Timeout[] = [];
-    if (isTabletOrIpadViewport()) {
-      const delays = [60, 180, 400, 700, 1100];
-      tabletTimers = delays.map((ms) => setTimeout(ensureBreadcrumbVisibleOnTablet, ms));
-    }
 
     window.addEventListener('hashchange', onPopOrHash);
     window.addEventListener('popstate', onPopOrHash);
     window.addEventListener('select-product-category', handleCustomCategoryEvent);
     window.addEventListener('scroll-to-products-heading', handleScrollToProductsHeading);
+
     return () => {
       if (autoScrollTimer) clearTimeout(autoScrollTimer);
-      if (autoScrollBackupTimer) clearTimeout(autoScrollBackupTimer);
+      if (tabletSafetyTimer) clearTimeout(tabletSafetyTimer);
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
       if (unlockTimerRef.current) clearTimeout(unlockTimerRef.current);
-      tabletTimers.forEach(clearTimeout);
+      window.removeEventListener('wheel', onUserInteraction);
+      window.removeEventListener('touchstart', onUserInteraction);
+      window.removeEventListener('touchmove', onUserInteraction);
+      window.removeEventListener('pointerdown', onUserInteraction);
+      window.removeEventListener('keydown', onUserInteraction);
       window.removeEventListener('hashchange', onPopOrHash);
       window.removeEventListener('popstate', onPopOrHash);
       window.removeEventListener('select-product-category', handleCustomCategoryEvent);
@@ -456,16 +432,9 @@ export default function ProductsPage() {
     const categoryParam = urlParams.get('category') || '';
     const storedCategory = typeof window !== 'undefined' ? sessionStorage.getItem('xcel_active_category') || '' : '';
     const targetId = hash || categoryParam || storedCategory;
-    const isGenericProductsNav = typeof window !== 'undefined' && sessionStorage.getItem('xcel_scroll_to_products') === 'true';
 
     if (targetId && categories.some(c => c.id === targetId)) {
       setActiveTab(targetId);
-      if (!isGenericProductsNav) {
-        if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
-        scrollTimerRef.current = setTimeout(() => {
-          scrollToCategoryHeader('smooth');
-        }, 100);
-      }
     } else {
       setActiveTab('washing');
     }
