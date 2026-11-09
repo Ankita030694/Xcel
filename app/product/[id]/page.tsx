@@ -350,9 +350,16 @@ export default function ProductDetailPage() {
   const isTabletOrIpadViewport = () => {
     if (typeof window === 'undefined') return false;
     const w = window.innerWidth;
-    const isTouch = typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || (navigator as any).msMaxTouchPoints > 0);
-    // Strictly scoped to iPad and tablet resolutions (640px to 1024px, and touch devices up to 1180px)
-    return (w >= 640 && w <= 1024) || (isTouch && w >= 640 && w <= 1180);
+    const isTouch = typeof navigator !== 'undefined' && (
+      (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || 
+      ((navigator as any).msMaxTouchPoints && (navigator as any).msMaxTouchPoints > 0)
+    );
+    const isIOSorIPad = typeof navigator !== 'undefined' && (
+      /iPad/.test(navigator.userAgent) || 
+      (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
+    );
+    // Strictly target iPads and tablets (width >= 640px, touch-enabled or tablet resolution up to 1366px)
+    return (w >= 640 && w <= 1024) || (isIOSorIPad && w >= 640) || (isTouch && w >= 640 && w <= 1366);
   };
 
   const forceScrollToTop = () => {
@@ -397,8 +404,15 @@ export default function ProductDetailPage() {
 
     if (bc) {
       const rect = bc.getBoundingClientRect();
-      if (rect.top < headerHeight || window.scrollY > 0) {
+      if (rect.top < headerHeight + 8 || window.scrollY > 0) {
         forceScrollToTop();
+        if (window.scrollY > 0) {
+          try {
+            window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+          } catch (e) {}
+          if (document.documentElement) document.documentElement.scrollTop = 0;
+          if (document.body) document.body.scrollTop = 0;
+        }
       }
     }
   };
@@ -427,18 +441,9 @@ export default function ProductDetailPage() {
     // iPad & Tablet specific timers to counteract WebKit scroll retention on product opening
     let tabletTimers: NodeJS.Timeout[] = [];
     if (isTabletOrIpadViewport()) {
-      const delays = [20, 80, 200, 350, 500, 750, 1000, 1300];
+      const delays = [25, 60, 120, 250, 450, 700, 1000, 1400];
       tabletTimers = delays.map((ms) => setTimeout(ensureBreadcrumbVisibleOnTablet, ms));
     }
-
-    // Yield control to user touch/scroll gestures once they intentionally interact
-    const onUserInteraction = () => {
-      tabletTimers.forEach(clearTimeout);
-      tabletTimers = [];
-    };
-    window.addEventListener('touchstart', onUserInteraction, { passive: true });
-    window.addEventListener('pointerdown', onUserInteraction, { passive: true });
-    window.addEventListener('wheel', onUserInteraction, { passive: true });
 
     setActiveImageIndex(0);
     if (carouselRef.current) {
@@ -464,9 +469,6 @@ export default function ProductDetailPage() {
       clearTimeout(t3);
       clearTimeout(t4);
       tabletTimers.forEach(clearTimeout);
-      window.removeEventListener('touchstart', onUserInteraction);
-      window.removeEventListener('pointerdown', onUserInteraction);
-      window.removeEventListener('wheel', onUserInteraction);
       window.removeEventListener('pageshow', onPageShow);
     };
   }, [id]);
@@ -820,7 +822,7 @@ export default function ProductDetailPage() {
     return (
       <div className="min-h-screen bg-white font-sans flex flex-col">
         <Header />
-        <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 md:pt-10 lg:pt-8 pb-10 animate-pulse min-h-[85vh]">
+        <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8 md:pt-14 lg:pt-8 pb-10 animate-pulse min-h-[85vh]">
           <div id="product-breadcrumbs" className="h-4 w-60 bg-gray-200 rounded-md mb-8"></div>
           <div className="flex flex-col lg:flex-row gap-6 lg:gap-12 mb-12">
             <div className="w-full sm:w-[80%] md:w-[65%] lg:w-[45%] xl:w-[40%] aspect-square bg-gray-100 rounded-2xl sm:rounded-3xl lg:rounded-[32px]"></div>
@@ -942,7 +944,7 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-white font-sans flex flex-col">
       <Header />
 
-      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-7 md:pt-9 lg:pt-8 pb-10 min-h-[80vh]">
+      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-7 md:pt-14 lg:pt-8 pb-10 min-h-[80vh]">
         
         {/* Breadcrumbs Navigation */}
         <div id="product-breadcrumbs" className="w-full max-w-full mb-4 sm:mb-6 md:mb-7 lg:mb-8 relative z-20 scroll-mt-36 md:scroll-mt-40">
@@ -1320,6 +1322,12 @@ export default function ProductDetailPage() {
                         }
                         if (relProd.customUrl) {
                           saveProductToCache(relProd.customUrl, relProd);
+                        }
+                        if (typeof window !== 'undefined') {
+                          sessionStorage.setItem('xcel_ensure_product_top', 'true');
+                          window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+                          if (document.documentElement) document.documentElement.scrollTop = 0;
+                          if (document.body) document.body.scrollTop = 0;
                         }
                       } catch (err) {}
                     }}

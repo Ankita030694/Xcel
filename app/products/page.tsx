@@ -167,9 +167,16 @@ export default function ProductsPage() {
   const isTabletOrIpadViewport = () => {
     if (typeof window === 'undefined') return false;
     const w = window.innerWidth;
-    const isTouch = typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || (navigator as any).msMaxTouchPoints > 0);
-    // Strictly scoped to iPad and tablet resolutions (640px to 1024px, and touch devices up to 1180px)
-    return (w >= 640 && w <= 1024) || (isTouch && w >= 640 && w <= 1180);
+    const isTouch = typeof navigator !== 'undefined' && (
+      (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) || 
+      ((navigator as any).msMaxTouchPoints && (navigator as any).msMaxTouchPoints > 0)
+    );
+    const isIOSorIPad = typeof navigator !== 'undefined' && (
+      /iPad/.test(navigator.userAgent) || 
+      (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
+    );
+    // Strictly target iPads and tablets (width >= 640px, touch-enabled or tablet resolution up to 1366px)
+    return (w >= 640 && w <= 1024) || (isIOSorIPad && w >= 640) || (isTouch && w >= 640 && w <= 1366);
   };
 
   const scrollToCategoryHeader = (behavior: ScrollBehavior = 'smooth') => {
@@ -443,15 +450,6 @@ export default function ProductsPage() {
       tabletTimers = delays.map((ms) => setTimeout(ensureBreadcrumbVisibleOnTablet, ms));
     }
 
-    // Yield control to user touch/scroll gestures once they intentionally interact
-    const onUserInteraction = () => {
-      tabletTimers.forEach(clearTimeout);
-      tabletTimers = [];
-    };
-    window.addEventListener('touchstart', onUserInteraction, { passive: true });
-    window.addEventListener('pointerdown', onUserInteraction, { passive: true });
-    window.addEventListener('wheel', onUserInteraction, { passive: true });
-
     window.addEventListener('hashchange', onPopOrHash);
     window.addEventListener('popstate', onPopOrHash);
     window.addEventListener('select-product-category', handleCustomCategoryEvent);
@@ -462,9 +460,6 @@ export default function ProductsPage() {
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
       if (unlockTimerRef.current) clearTimeout(unlockTimerRef.current);
       tabletTimers.forEach(clearTimeout);
-      window.removeEventListener('touchstart', onUserInteraction);
-      window.removeEventListener('pointerdown', onUserInteraction);
-      window.removeEventListener('wheel', onUserInteraction);
       window.removeEventListener('hashchange', onPopOrHash);
       window.removeEventListener('popstate', onPopOrHash);
       window.removeEventListener('select-product-category', handleCustomCategoryEvent);
@@ -642,6 +637,12 @@ export default function ProductsPage() {
                       }
                       sessionStorage.setItem('xcel_scroll_to_products', 'true');
                       sessionStorage.setItem('xcel_active_category', activeTab);
+                      sessionStorage.setItem('xcel_ensure_product_top', 'true');
+                      if (typeof window !== 'undefined') {
+                        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+                        if (document.documentElement) document.documentElement.scrollTop = 0;
+                        if (document.body) document.body.scrollTop = 0;
+                      }
                     } catch (e) {}
                   }}
                   onMouseEnter={() => {
