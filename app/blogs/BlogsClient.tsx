@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { Header } from "../components/Header";
 import { Footer } from "../components/Footer";
@@ -270,6 +269,31 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
   }, []);
 
   useEffect(() => {
+    // 1. Immediately hydrate from client session cache if available to prevent network delay jumps
+    try {
+      const cached = sessionStorage.getItem("xcel_cached_blogs");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setArticles((prev) => {
+            if (
+              prev.length === parsed.length &&
+              prev.every(
+                (p, i) =>
+                  p.slug === parsed[i].slug &&
+                  p.imageSrc === parsed[i].imageSrc &&
+                  p.title === parsed[i].title &&
+                  p.date === parsed[i].date
+              )
+            ) {
+              return prev;
+            }
+            return parsed;
+          });
+        }
+      }
+    } catch (e) {}
+
     const loadDynamicBlogs = async () => {
       try {
         const [snap, deletedSnap] = await Promise.all([
@@ -313,13 +337,18 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
               (p, i) =>
                 p.slug === finalArticles[i].slug &&
                 p.imageSrc === finalArticles[i].imageSrc &&
-                p.title === finalArticles[i].title
+                p.title === finalArticles[i].title &&
+                p.date === finalArticles[i].date
             )
           ) {
             return prev;
           }
           return finalArticles;
         });
+
+        try {
+          sessionStorage.setItem("xcel_cached_blogs", JSON.stringify(finalArticles));
+        } catch (e) {}
 
         // Notify Footer and other components with updated articles
         if (typeof window !== "undefined") {
@@ -434,15 +463,12 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
                 {/* Image Banner (1:1 Square) */}
                 <Link href={`/blogs/${article.slug}`} className="block">
                   <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-6 bg-gray-100 border border-gray-200/60 shadow-xs">
-                    <Image
+                    <img
                       src={article.imageSrc || "/blog1/Blog 1- 1080 x 1080.svg"}
                       alt={article.title}
-                      fill
-                      priority={idx < 6}
                       loading={idx < 6 ? "eager" : "lazy"}
-                      unoptimized
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      className="object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
+                      decoding="async"
+                      className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out block"
                     />
                   </div>
                 </Link>

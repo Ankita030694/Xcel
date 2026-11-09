@@ -164,6 +164,14 @@ export default function ProductsPage() {
 
   const scrollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const isTabletOrIpadViewport = () => {
+    if (typeof window === 'undefined') return false;
+    const w = window.innerWidth;
+    const isTouch = typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || (navigator as any).msMaxTouchPoints > 0);
+    // Strictly scoped to iPad and tablet resolutions (640px to 1024px, and touch devices up to 1180px)
+    return (w >= 640 && w <= 1024) || (isTouch && w >= 640 && w <= 1180);
+  };
+
   const scrollToCategoryHeader = (behavior: ScrollBehavior = 'smooth') => {
     const element = document.getElementById('category-header') || document.getElementById('products-section');
     if (element) {
@@ -184,6 +192,7 @@ export default function ProductsPage() {
   const scrollToProductsHeading = (behavior: ScrollBehavior = 'smooth') => {
     const banner = document.getElementById('hero-banner-section');
     const header = document.querySelector('header');
+    const breadcrumbs = document.getElementById('products-breadcrumbs');
     const currentScrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop;
 
     if (banner) {
@@ -191,7 +200,20 @@ export default function ProductsPage() {
       const bannerBottom = bannerRect.bottom + currentScrollY;
       const headerHeight = header ? header.offsetHeight : (typeof window !== 'undefined' && window.innerWidth < 1024 ? 124 : 124);
       // Auto-scroll until the product page banner goes above the sticky navbar
-      const targetY = Math.max(0, Math.round(bannerBottom - headerHeight + 2));
+      let targetY = Math.max(0, Math.round(bannerBottom - headerHeight + 2));
+
+      // Strictly on tablet and iPad: ensure breadcrumbs are never hiding behind the sticky navbar
+      if (isTabletOrIpadViewport()) {
+        if (breadcrumbs) {
+          const bcRect = breadcrumbs.getBoundingClientRect();
+          const bcAbsoluteTop = bcRect.top + currentScrollY;
+          // Ensure breadcrumbs have at least 24px comfortable clearance below the sticky navbar
+          const maxScrollForBreadcrumbs = Math.max(0, Math.round(bcAbsoluteTop - headerHeight - 24));
+          targetY = Math.min(targetY, maxScrollForBreadcrumbs);
+        } else {
+          targetY = Math.max(0, targetY - 32);
+        }
+      }
 
       window.scrollTo({
         top: targetY,
@@ -205,12 +227,37 @@ export default function ProductsPage() {
       const headerHeight = header ? header.offsetHeight : 124;
       const rect = element.getBoundingClientRect();
       const elementY = rect.top + currentScrollY;
-      const targetY = Math.max(0, Math.round(elementY - headerHeight + 2));
+      let targetY = Math.max(0, Math.round(elementY - headerHeight + 2));
+
+      if (isTabletOrIpadViewport() && breadcrumbs) {
+        const bcRect = breadcrumbs.getBoundingClientRect();
+        const bcAbsoluteTop = bcRect.top + currentScrollY;
+        const maxScrollForBreadcrumbs = Math.max(0, Math.round(bcAbsoluteTop - headerHeight - 24));
+        targetY = Math.min(targetY, maxScrollForBreadcrumbs);
+      }
 
       window.scrollTo({
         top: targetY,
         behavior
       });
+    }
+  };
+
+  // Explicitly ensures breadcrumbs are visible on iPad and tablet viewports on the product overview page
+  const ensureBreadcrumbVisibleOnTablet = () => {
+    if (typeof window === 'undefined') return;
+    if (!isTabletOrIpadViewport()) return;
+
+    const bc = document.getElementById('products-breadcrumbs');
+    const header = document.querySelector('header');
+    const headerHeight = header ? header.offsetHeight : 124;
+
+    if (bc) {
+      const rect = bc.getBoundingClientRect();
+      // If breadcrumb is hiding behind or clipped by the sticky navbar on tablet/iPad
+      if (rect.top < headerHeight + 16 && window.scrollY > 0) {
+        scrollToProductsHeading('instant' as ScrollBehavior);
+      }
     }
   };
 
@@ -382,8 +429,28 @@ export default function ProductsPage() {
         scrollTimerRef.current = setTimeout(() => {
           scrollToProductsHeading('smooth');
         }, 120);
+
+        if (isTabletOrIpadViewport()) {
+          setTimeout(ensureBreadcrumbVisibleOnTablet, 250);
+        }
       }
     };
+
+    // Tablet & iPad specific timers to counteract WebKit scroll retention on overview page
+    let tabletTimers: NodeJS.Timeout[] = [];
+    if (isTabletOrIpadViewport()) {
+      const delays = [60, 180, 400, 700, 1100];
+      tabletTimers = delays.map((ms) => setTimeout(ensureBreadcrumbVisibleOnTablet, ms));
+    }
+
+    // Yield control to user touch/scroll gestures once they intentionally interact
+    const onUserInteraction = () => {
+      tabletTimers.forEach(clearTimeout);
+      tabletTimers = [];
+    };
+    window.addEventListener('touchstart', onUserInteraction, { passive: true });
+    window.addEventListener('pointerdown', onUserInteraction, { passive: true });
+    window.addEventListener('wheel', onUserInteraction, { passive: true });
 
     window.addEventListener('hashchange', onPopOrHash);
     window.addEventListener('popstate', onPopOrHash);
@@ -394,6 +461,10 @@ export default function ProductsPage() {
       if (autoScrollBackupTimer) clearTimeout(autoScrollBackupTimer);
       if (scrollTimerRef.current) clearTimeout(scrollTimerRef.current);
       if (unlockTimerRef.current) clearTimeout(unlockTimerRef.current);
+      tabletTimers.forEach(clearTimeout);
+      window.removeEventListener('touchstart', onUserInteraction);
+      window.removeEventListener('pointerdown', onUserInteraction);
+      window.removeEventListener('wheel', onUserInteraction);
       window.removeEventListener('hashchange', onPopOrHash);
       window.removeEventListener('popstate', onPopOrHash);
       window.removeEventListener('select-product-category', handleCustomCategoryEvent);
@@ -485,11 +556,11 @@ export default function ProductsPage() {
         id="products-section" 
         ref={productsSectionRef}
         style={{ minHeight: lockedMinHeight ? `${lockedMinHeight}px` : undefined }}
-        className="flex-1 min-h-[75vh] max-w-[1400px] mx-auto w-full px-4 sm:px-6 lg:px-8 pt-4 sm:pt-6 pb-12 lg:pt-8 lg:pb-24 flex flex-col items-center scroll-mt-[100px]"
+        className="flex-1 min-h-[75vh] max-w-[1400px] mx-auto w-full px-4 sm:px-6 lg:px-8 pt-4 sm:pt-14 md:pt-16 lg:pt-8 pb-12 lg:pb-24 flex flex-col items-center scroll-mt-[100px]"
       >
         
         {/* Breadcrumb Navigation */}
-        <div className="w-full flex flex-row items-center gap-2 sm:gap-3 text-[12px] sm:text-[13px] text-[#363636] mb-6 sm:mb-8 overflow-x-auto scrollbar-hide whitespace-nowrap self-start">
+        <div id="products-breadcrumbs" className="w-full flex flex-row items-center gap-2 sm:gap-3 text-[12px] sm:text-[13px] text-[#363636] mb-6 sm:mb-8 overflow-x-auto scrollbar-hide whitespace-nowrap self-start">
           <Link href="/" className="text-[#363636] hover:text-[#0a2766] transition-colors flex items-center shrink-0" title="Home">
             <Home size={13} className="sm:w-[14px] sm:h-[14px]" strokeWidth={1.5} />
           </Link>

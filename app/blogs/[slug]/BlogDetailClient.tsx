@@ -442,20 +442,19 @@ export default function BlogDetailClient({
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10">
               {relatedArticles.map((rel) => (
                 <article
-                  key={rel.id || rel.slug}
+                  key={rel.slug}
                   className="flex flex-col justify-between group cursor-pointer bg-white rounded-2xl p-4 sm:p-5 border border-gray-150 hover:border-[#3b5b95]/40 hover:shadow-xl transition-all duration-300"
                 >
                   <div>
                     <Link href={`/blogs/${rel.slug}`} className="block">
                       {/* Image Banner: 1:1 Square */}
                       <div className="relative w-full aspect-square rounded-xl overflow-hidden mb-6 bg-gray-100 border border-gray-200/60 shadow-xs">
-                        <Image
+                        <img
                           src={rel.imageSrc || "/blog1/Blog 1- 1080 x 1080.svg"}
                           alt={rel.title}
-                          fill
-                          unoptimized
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          className="object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out"
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 ease-out block"
                         />
                       </div>
                     </Link>
