@@ -391,10 +391,9 @@ export default function ProductDetailPage() {
     }
   };
 
-  // Explicitly ensures breadcrumbs are visible on iPad and tablet viewports when opening any product
-  const ensureBreadcrumbVisibleOnTablet = () => {
+  // Explicitly ensures breadcrumbs are visible and the page starts cleanly at the top when opening any product
+  const ensureBreadcrumbsVisible = () => {
     if (typeof window === 'undefined') return;
-    if (!isTabletOrIpadViewport()) return;
 
     forceScrollToTop();
 
@@ -419,7 +418,7 @@ export default function ProductDetailPage() {
 
   useIsomorphicLayoutEffect(() => {
     forceScrollToTop();
-    ensureBreadcrumbVisibleOnTablet();
+    ensureBreadcrumbsVisible();
     if (carouselRef.current) {
       carouselRef.current.scrollLeft = 0;
     }
@@ -427,23 +426,17 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     forceScrollToTop();
-    ensureBreadcrumbVisibleOnTablet();
+    ensureBreadcrumbsVisible();
     const rId = requestAnimationFrame(() => {
       forceScrollToTop();
-      ensureBreadcrumbVisibleOnTablet();
+      ensureBreadcrumbsVisible();
     });
-    const t0 = setTimeout(forceScrollToTop, 10);
-    const t1 = setTimeout(forceScrollToTop, 50);
-    const t2 = setTimeout(forceScrollToTop, 150);
-    const t3 = setTimeout(forceScrollToTop, 300);
-    const t4 = setTimeout(forceScrollToTop, 500);
 
-    // iPad & Tablet specific timers to counteract WebKit scroll retention on product opening
-    let tabletTimers: NodeJS.Timeout[] = [];
-    if (isTabletOrIpadViewport()) {
-      const delays = [25, 60, 120, 250, 450, 700, 1000, 1400];
-      tabletTimers = delays.map((ms) => setTimeout(ensureBreadcrumbVisibleOnTablet, ms));
-    }
+    const delays = [20, 50, 100, 200, 350, 550, 850, 1200];
+    const timers = delays.map((ms) => setTimeout(() => {
+      forceScrollToTop();
+      ensureBreadcrumbsVisible();
+    }, ms));
 
     setActiveImageIndex(0);
     if (carouselRef.current) {
@@ -453,22 +446,19 @@ export default function ProductDetailPage() {
     if (cached) {
       setProduct(cached);
       setLoading(false);
+    } else {
+      setLoading(true);
     }
 
     const onPageShow = () => {
       forceScrollToTop();
-      ensureBreadcrumbVisibleOnTablet();
+      ensureBreadcrumbsVisible();
     };
     window.addEventListener('pageshow', onPageShow);
 
     return () => {
       cancelAnimationFrame(rId);
-      clearTimeout(t0);
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-      tabletTimers.forEach(clearTimeout);
+      timers.forEach(clearTimeout);
       window.removeEventListener('pageshow', onPageShow);
     };
   }, [id]);
@@ -680,30 +670,29 @@ export default function ProductDetailPage() {
   }, [relatedProducts]);
 
   useEffect(() => {
-    const wasLoading = prevLoadingRef.current;
     prevLoadingRef.current = loading;
-    if (wasLoading && !loading && product && typeof window !== 'undefined') {
+    if (product && typeof window !== 'undefined') {
       forceScrollToTop();
-      ensureBreadcrumbVisibleOnTablet();
+      ensureBreadcrumbsVisible();
       const rId = requestAnimationFrame(() => {
         forceScrollToTop();
-        ensureBreadcrumbVisibleOnTablet();
+        ensureBreadcrumbsVisible();
       });
       const t1 = setTimeout(() => {
         forceScrollToTop();
-        ensureBreadcrumbVisibleOnTablet();
+        ensureBreadcrumbsVisible();
       }, 50);
       const t2 = setTimeout(() => {
         forceScrollToTop();
-        ensureBreadcrumbVisibleOnTablet();
+        ensureBreadcrumbsVisible();
       }, 150);
       const t3 = setTimeout(() => {
         forceScrollToTop();
-        ensureBreadcrumbVisibleOnTablet();
+        ensureBreadcrumbsVisible();
       }, 350);
       const t4 = setTimeout(() => {
         forceScrollToTop();
-        ensureBreadcrumbVisibleOnTablet();
+        ensureBreadcrumbsVisible();
       }, 600);
       return () => {
         cancelAnimationFrame(rId);
@@ -713,7 +702,7 @@ export default function ProductDetailPage() {
         clearTimeout(t4);
       };
     }
-  }, [loading, product, id]);
+  }, [loading, product?.id, id]);
 
   useEffect(() => {
     // Only scroll within the horizontal thumbnail container, never scrolling the window
@@ -1325,9 +1314,6 @@ export default function ProductDetailPage() {
                         }
                         if (typeof window !== 'undefined') {
                           sessionStorage.setItem('xcel_ensure_product_top', 'true');
-                          window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-                          if (document.documentElement) document.documentElement.scrollTop = 0;
-                          if (document.body) document.body.scrollTop = 0;
                         }
                       } catch (err) {}
                     }}

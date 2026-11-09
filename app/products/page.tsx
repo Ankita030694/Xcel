@@ -638,11 +638,6 @@ export default function ProductsPage() {
                       sessionStorage.setItem('xcel_scroll_to_products', 'true');
                       sessionStorage.setItem('xcel_active_category', activeTab);
                       sessionStorage.setItem('xcel_ensure_product_top', 'true');
-                      if (typeof window !== 'undefined') {
-                        window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-                        if (document.documentElement) document.documentElement.scrollTop = 0;
-                        if (document.body) document.body.scrollTop = 0;
-                      }
                     } catch (e) {}
                   }}
                   onMouseEnter={() => {
