@@ -22,9 +22,10 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to view th
 
 ## Key Features
 
-- **Product Showcase**: Detailed catalog for commercial washers, dry cleaners, finishing equipment, and accessories.
-- **Admin Management**: Dedicated portal for managing products and inbound customer leads.
-- **Interactive UI**: Responsive layouts, interactive India service map, and clean modern aesthetic.
+- **Product Showcase**: Detailed catalog for commercial washers, dry cleaners, finishing equipment, and accessories with smooth responsive navigation.
+- **Admin Management**: Dedicated portal for managing products, blogs, and inbound customer leads.
+- **Industry Insights**: Dynamic articles, laundry operations knowledge base, and actionable facility guides.
+- **Interactive UI**: Fully responsive layouts across desktop, tablet, and mobile, interactive India service map, and clean modern aesthetic.
 - **SEO Optimized**: Static metadata generation, dynamic blogs, dynamic sitemaps, and optimized routing.
 
 ## Deployment
