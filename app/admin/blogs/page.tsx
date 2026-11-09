@@ -51,6 +51,7 @@ import {
   X,
   CheckCircle2,
   AlertTriangle,
+  ShieldCheck,
 } from "lucide-react";
 
 const DEFAULT_CATEGORIES = [
@@ -364,7 +365,7 @@ export default function AdminBlogsPage() {
     setShowBannerUrlInput(false);
     setDescription(convertSectionsToHtml(blog));
     setShortVersionPoints(blog.shortVersion && blog.shortVersion.length > 0 ? blog.shortVersion : []);
-    setActionSteps(blog.actionSteps && blog.actionSteps.length > 0 ? blog.actionSteps : DEFAULT_ACTION_STEPS);
+    setActionSteps(Array.isArray(blog.actionSteps) ? blog.actionSteps : DEFAULT_ACTION_STEPS);
     setDisclaimer(blog.disclaimer || DEFAULT_DISCLAIMER);
     setCtaTagline(blog.ctaTagline || DEFAULT_CTA_TAGLINE);
     setCtaHeading(blog.ctaHeading || DEFAULT_CTA_HEADING);
@@ -979,6 +980,144 @@ export default function AdminBlogsPage() {
                         <ChevronRight className="w-4 h-4 text-[#3b5b95]" />
                       </div>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Next Recommended Steps (Action Steps) Editor */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm space-y-4">
+                <div className="border-b border-gray-100 pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-5 h-5 text-[#3b5b95]" />
+                      <h3 className="text-sm font-bold text-[#0a2766] uppercase tracking-wide">
+                        Next Recommended Steps
+                      </h3>
+                    </div>
+                    <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200">
+                      Editable Section
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Checklist items displayed at the end of the article advising facility owners on concrete next steps before procurement.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  {actionSteps.map((step, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-start gap-2.5 bg-gray-50/70 p-3 rounded-lg border border-gray-200/90 group focus-within:border-[#32589c] focus-within:bg-white focus-within:shadow-xs transition-all"
+                    >
+                      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-50 text-[#0a2766] text-xs font-bold shrink-0 mt-1 border border-blue-200">
+                        {idx + 1}
+                      </div>
+
+                      <textarea
+                        rows={2}
+                        value={step}
+                        onChange={(e) => {
+                          const copy = [...actionSteps];
+                          copy[idx] = e.target.value;
+                          setActionSteps(copy);
+                        }}
+                        placeholder={`Step ${idx + 1}: e.g. Decide on what downtime actually costs your facility before fixing your procurement budget.`}
+                        className="flex-1 border border-gray-300 rounded px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:border-[#32589c] resize-y leading-relaxed"
+                      />
+
+                      <div className="flex flex-col gap-1 shrink-0">
+                        <button
+                          type="button"
+                          disabled={idx === 0}
+                          onClick={() => {
+                            if (idx === 0) return;
+                            const copy = [...actionSteps];
+                            const temp = copy[idx - 1];
+                            copy[idx - 1] = copy[idx];
+                            copy[idx] = temp;
+                            setActionSteps(copy);
+                          }}
+                          title="Move step up"
+                          className="p-1.5 text-gray-400 hover:text-[#0a2766] hover:bg-gray-200/60 rounded disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <ArrowUp size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          disabled={idx === actionSteps.length - 1}
+                          onClick={() => {
+                            if (idx === actionSteps.length - 1) return;
+                            const copy = [...actionSteps];
+                            const temp = copy[idx + 1];
+                            copy[idx + 1] = copy[idx];
+                            copy[idx] = temp;
+                            setActionSteps(copy);
+                          }}
+                          title="Move step down"
+                          className="p-1.5 text-gray-400 hover:text-[#0a2766] hover:bg-gray-200/60 rounded disabled:opacity-25 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <ArrowDown size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setActionSteps(actionSteps.filter((_, i) => i !== idx))}
+                          title="Delete step"
+                          className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setActionSteps([...actionSteps, ""])}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-[#32589c] hover:text-[#0a2766] bg-blue-50/80 hover:bg-blue-100 border border-blue-200 px-3.5 py-2 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Plus size={14} />
+                      <span>Add Step</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActionSteps([...DEFAULT_ACTION_STEPS])}
+                      className="text-xs text-gray-500 hover:text-gray-700 underline cursor-pointer"
+                    >
+                      Reset to sample steps
+                    </button>
+                  </div>
+                </div>
+
+                {/* Live Card Preview */}
+                <div className="pt-2">
+                  <span className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                    Live Next Recommended Steps Preview
+                  </span>
+                  <div className="bg-[#f8f9fa] border border-gray-200 rounded-2xl p-6 sm:p-7 shadow-xs">
+                    <h4 className="text-xl font-bold tracking-tight text-[#0a2766] mb-5 flex items-center gap-2.5">
+                      <ShieldCheck className="w-6 h-6 text-[#3b5b95]" />
+                      <span>Next Recommended Steps</span>
+                    </h4>
+                    {actionSteps.filter((s) => s.trim()).length > 0 ? (
+                      <div className="space-y-4">
+                        {actionSteps
+                          .filter((s) => s.trim())
+                          .map((step, idx) => (
+                            <div key={idx} className="flex items-start gap-3.5">
+                              <CheckCircle2 className="w-5 h-5 text-[#3b5b95] shrink-0 mt-0.5" />
+                              <p className="text-[15px] leading-relaxed text-gray-700 font-medium">
+                                {step}
+                              </p>
+                            </div>
+                          ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-400 italic">
+                        No steps added. This card will not be shown on the live blog article.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
