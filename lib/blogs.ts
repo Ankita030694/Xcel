@@ -50,41 +50,81 @@ export async function getDeletedBlogSlugs(): Promise<Set<string>> {
 /**
  * Merge Firestore blogs with default system blogs, strictly excluding
  * any blogs that were permanently deleted by the user.
+ * Preserves the canonical sequence of core system blogs so updated articles
+ * update in-place without swapping or interchanging positions with adjacent cards.
  */
 export function mergeWithDefaultBlogs(
   firestoreBlogs: AdminBlogArticle[],
   deletedSlugs: Set<string> = new Set()
 ): AdminBlogArticle[] {
-  const existingSlugs = new Set(
-    firestoreBlogs.map((b) => b.slug?.toLowerCase().trim()).filter(Boolean)
-  );
-  const missingDefaults: AdminBlogArticle[] = [];
+  // Map all default slugs and ids to their canonical index
+  const defaultSlugMap = new Map<string, number>();
+  BLOG_ARTICLES.forEach((b, idx) => {
+    defaultSlugMap.set(b.slug.toLowerCase().trim(), idx);
+    const defId = `default-${b.id}`.toLowerCase();
+    defaultSlugMap.set(defId, idx);
+    defaultSlugMap.set(String(b.id).toLowerCase().trim(), idx);
+    if (b.aliases) {
+      b.aliases.forEach((al) => defaultSlugMap.set(al.toLowerCase().trim(), idx));
+    }
+  });
 
-  for (const defaultArt of BLOG_ARTICLES) {
-    const slug = defaultArt.slug.toLowerCase().trim();
-    const defaultId = `default-${defaultArt.id}`.toLowerCase();
+  const customBlogs: AdminBlogArticle[] = [];
+  const defaultOverrides = new Map<number, AdminBlogArticle>();
 
-    // Never restore a default blog if it was explicitly deleted
-    if (deletedSlugs.has(slug) || deletedSlugs.has(defaultId) || deletedSlugs.has(defaultArt.id.toLowerCase())) {
+  for (const fb of firestoreBlogs) {
+    const slug = (fb.slug || "").toLowerCase().trim();
+    const id = (fb.id || "").toLowerCase().trim();
+
+    if (deletedSlugs.has(slug) || deletedSlugs.has(id)) {
       continue;
     }
 
-    if (!existingSlugs.has(slug)) {
-      missingDefaults.push({
+    const defaultIdx = defaultSlugMap.has(slug)
+      ? defaultSlugMap.get(slug)!
+      : defaultSlugMap.has(id)
+      ? defaultSlugMap.get(id)!
+      : -1;
+
+    if (defaultIdx !== -1) {
+      // It is an update/override to a canonical default blog
+      defaultOverrides.set(defaultIdx, fb);
+    } else {
+      // It is a newly authored custom blog
+      customBlogs.push(fb);
+    }
+  }
+
+  // Sort newly authored custom blogs by creation time (newest first)
+  customBlogs.sort((a, b) => {
+    const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+    const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+    return timeB - timeA;
+  });
+
+  // Reconstruct default blogs in their exact, stable canonical sequence (Blog 1, Blog 2, ...)
+  const resolvedDefaults: AdminBlogArticle[] = [];
+  BLOG_ARTICLES.forEach((defaultArt, idx) => {
+    const slug = defaultArt.slug.toLowerCase().trim();
+    const defaultId = `default-${defaultArt.id}`.toLowerCase();
+
+    if (deletedSlugs.has(slug) || deletedSlugs.has(defaultId) || deletedSlugs.has(String(defaultArt.id).toLowerCase())) {
+      return;
+    }
+
+    if (defaultOverrides.has(idx)) {
+      resolvedDefaults.push(defaultOverrides.get(idx)!);
+    } else {
+      resolvedDefaults.push({
         ...defaultArt,
         id: `default-${defaultArt.id}`,
         status: "published",
       });
     }
-  }
-
-  const filteredFirestore = firestoreBlogs.filter((b) => {
-    const slug = (b.slug || "").toLowerCase().trim();
-    const id = (b.id || "").toLowerCase().trim();
-    return !deletedSlugs.has(slug) && !deletedSlugs.has(id);
   });
 
-  return [...filteredFirestore, ...missingDefaults];
+  // Custom blogs come first (newest), followed by the stable canonical core sequence
+  return [...customBlogs, ...resolvedDefaults];
 }
 
 /**

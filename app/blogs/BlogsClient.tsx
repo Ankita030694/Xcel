@@ -319,15 +319,10 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
         }
 
         // Merge dynamic Firestore articles with all default articles (excluding deleted ones)
+        // mergeWithDefaultBlogs preserves the stable canonical sequence of core blogs and places new custom blogs on top
         const merged = mergeWithDefaultBlogs(dynamicList, deletedSlugs);
         // Exclude drafts from the public blogs page
         const finalArticles = merged.filter((a) => a.status !== "draft");
-
-        finalArticles.sort((a, b) => {
-          const tA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
-          const tB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
-          return tB - tA;
-        });
 
         // Only update state if articles actually changed to prevent image flickering and redundant re-renders
         setArticles((prev) => {
