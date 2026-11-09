@@ -36,6 +36,27 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: "/:path*.pdf",
+        headers: [
+          {
+            key: "Content-Type",
+            value: "application/pdf",
+          },
+          {
+            key: "Content-Disposition",
+            value: "inline",
+          },
+        ],
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      {
+        source: "/brochure",
+        destination: "/Xcel-Brochure.pdf",
+      },
     ];
   },
 };

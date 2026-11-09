@@ -176,7 +176,7 @@ export const Header = () => {
             {/* Quote Button - Desktop */}
             <div className="hidden lg:flex items-center">
               <a 
-                href="/Xcel%20Brochure%20.pdf"
+                href="/Xcel-Brochure.pdf"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-gradient-to-b from-white to-gray-50 text-[#0a2766] font-bold text-[14px] lg:text-[15px] tracking-wider px-5 py-2.5 lg:px-6 lg:py-2.5 rounded-[12px] border border-gray-100 shadow-[0_5px_0_#cbd5e1,0_10px_20px_rgba(0,0,0,0.15)] hover:shadow-[0_6px_0_#94a3b8,0_15px_25px_rgba(0,0,0,0.2)] hover:-translate-y-1 active:shadow-[0_0px_0_#cbd5e1,0_0px_0_rgba(0,0,0,0.2)] active:translate-y-[5px] transition-all duration-200 flex items-center justify-center cursor-pointer"
@@ -274,7 +274,7 @@ export const Header = () => {
           
           <div className="pt-6 mt-4 border-t border-gray-100 flex lg:hidden">
             <a 
-              href="/Xcel%20Brochure%20.pdf"
+              href="/Xcel-Brochure.pdf"
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setIsMobileMenuOpen(false)}
