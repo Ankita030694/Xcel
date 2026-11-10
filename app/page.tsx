@@ -7,6 +7,8 @@ import { Star, ShieldCheck, Zap, Maximize, Play, Pause, Factory, Handshake } fro
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { Users, Award, MapPin } from 'lucide-react';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 const Counter = ({ end, duration = 2500, suffix = "" }: { end: number, duration?: number, suffix?: string }) => {
   return <span>{end.toLocaleString()}{suffix}</span>;
@@ -1524,6 +1526,7 @@ const ProductCategories = () => {
 
 export default function Home() {
   useEffect(() => {
+    let prefetchTimer: NodeJS.Timeout | null = null;
     if (typeof window !== 'undefined') {
       if (window.location.hash === '#engineering-excellence') {
         try {
@@ -1533,7 +1536,35 @@ export default function Home() {
       if (!window.location.hash) {
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
       }
+
+      // Pre-cache products in the background so navigating to products page is instant
+      try {
+        if (!sessionStorage.getItem('xcel_all_products')) {
+          prefetchTimer = setTimeout(async () => {
+            try {
+              const querySnapshot = await getDocs(collection(db, "products"));
+              const fetchedProducts: any[] = [];
+              querySnapshot.forEach((doc: any) => {
+                fetchedProducts.push({ id: doc.id, ...doc.data() });
+              });
+              fetchedProducts.sort((a, b) => {
+                const orderA = typeof a.order === 'number' ? a.order : 9999;
+                const orderB = typeof b.order === 'number' ? b.order : 9999;
+                if (orderA !== orderB) return orderA - orderB;
+                const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+                const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+                return timeB - timeA;
+              });
+              sessionStorage.setItem('xcel_all_products', JSON.stringify(fetchedProducts));
+            } catch (err) {}
+          }, 1200);
+        }
+      } catch (e) {}
     }
+
+    return () => {
+      if (prefetchTimer) clearTimeout(prefetchTimer);
+    };
   }, []);
 
   return (

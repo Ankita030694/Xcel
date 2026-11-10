@@ -1,7 +1,7 @@
 "use client";
-import React, { useEffect, useState, useRef, startTransition } from 'react';
+import React, { useEffect, useState, useRef, startTransition, Suspense } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Header } from '../components/Header';
 import { Footer } from '../components/Footer';
 import { Home, ChevronRight } from 'lucide-react';
@@ -66,27 +66,99 @@ const getCardBgColor = (prod: any): string | undefined => {
 };
 
 export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <ProductsContent />
+    </Suspense>
+  );
+}
+
+function ProductsContent() {
   const pathname = usePathname();
-  const [activeTab, setActiveTab] = useState<string>('washing');
+  const searchParams = useSearchParams();
+
+  // Synchronously resolve target category on first render
+  const resolveTargetCategory = (): string => {
+    const categoryParam = searchParams?.get('category');
+    if (categoryParam && categories.some(c => c.id === categoryParam)) {
+      return categoryParam;
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        const hash = window.location.hash ? window.location.hash.substring(1) : '';
+        if (hash && categories.some(c => c.id === hash)) {
+          return hash;
+        }
+        const stored = sessionStorage.getItem('xcel_active_category');
+        if (stored && categories.some(c => c.id === stored)) {
+          return stored;
+        }
+      } catch (e) {}
+    }
+    return 'washing';
+  };
+
+  const [activeTab, setActiveTab] = useState<string>(resolveTargetCategory);
   const [lockedMinHeight, setLockedMinHeight] = useState<number | null>(null);
   const productsSectionRef = useRef<HTMLElement | null>(null);
   const unlockTimerRef = useRef<NodeJS.Timeout | null>(null);
   
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Synchronously initialize cached products from sessionStorage so there is no delay if already cached
+  const [products, setProducts] = useState<any[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = sessionStorage.getItem('xcel_all_products');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch (e) {}
+    }
+    return [];
+  });
+
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = sessionStorage.getItem('xcel_all_products');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return false;
+          }
+        }
+      } catch (e) {}
+    }
+    return true;
+  });
 
   // Category sequence for Complete Range (configurable by Admin)
-  const [categoryOrder, setCategoryOrder] = useState<string[]>([
-    'washing',
-    'drying',
-    'apparel-processing',
-    'dry-cleaning',
-    'flat-work',
-    'steam-finishing',
-    'water-heater',
-    'fabric-checking',
-    'other-equipment'
-  ]);
+  const [categoryOrder, setCategoryOrder] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const storedOrder = sessionStorage.getItem('xcel_category_order');
+        if (storedOrder) {
+          const parsed = JSON.parse(storedOrder);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            return parsed;
+          }
+        }
+      } catch (e) {}
+    }
+    return [
+      'washing',
+      'drying',
+      'apparel-processing',
+      'dry-cleaning',
+      'flat-work',
+      'steam-finishing',
+      'water-heater',
+      'fabric-checking',
+      'other-equipment'
+    ];
+  });
 
   useEffect(() => {
     // Restore cached data post-hydration
@@ -427,18 +499,18 @@ export default function ProductsPage() {
   }, []);
 
   useEffect(() => {
+    const categoryParam = searchParams?.get('category');
     const hash = typeof window !== 'undefined' && window.location.hash ? window.location.hash.substring(1) : '';
-    const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
-    const categoryParam = urlParams.get('category') || '';
     const storedCategory = typeof window !== 'undefined' ? sessionStorage.getItem('xcel_active_category') || '' : '';
-    const targetId = hash || categoryParam || storedCategory;
+    const targetId = categoryParam || hash || storedCategory;
 
     if (targetId && categories.some(c => c.id === targetId)) {
-      setActiveTab(targetId);
-    } else {
-      setActiveTab('washing');
+      setActiveTab((prev) => (prev !== targetId ? targetId : prev));
+      try {
+        sessionStorage.setItem('xcel_active_category', targetId);
+      } catch (e) {}
     }
-  }, [pathname]);
+  }, [pathname, searchParams]);
 
   const isCompleteRange = activeTab === 'complete-range';
   const activeCategory = categories.find(c => c.id === activeTab) || categories[0];
@@ -465,7 +537,7 @@ export default function ProductsPage() {
         const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
         return timeB - timeA;
       });
-    } else {
+    } else if (!loading) {
       const fallbackEntries = Object.entries(FALLBACK_PRODUCTS).filter(([catId]) => catId !== 'complete-range');
       fallbackEntries.sort(([catA], [catB]) => {
         const idxA = catOrder.indexOf(catA);
@@ -476,7 +548,7 @@ export default function ProductsPage() {
     }
   } else {
     activeCategoryProducts = products.filter(p => p.categoryId === activeCategory.id);
-    if (activeCategoryProducts.length === 0) {
+    if (!loading && activeCategoryProducts.length === 0) {
       activeCategoryProducts = FALLBACK_PRODUCTS[activeCategory.id] || [];
     }
   }
@@ -567,7 +639,24 @@ export default function ProductsPage() {
 
         {/* Product Carousel (Mobile) / Grid (Desktop) */}
         {loading && activeCategoryProducts.length === 0 ? (
-          <div className="w-full text-center py-12 text-gray-500">Loading products...</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-5 md:gap-6 xl:gap-8 w-full pb-8">
+            {[1, 2, 3, 4].map((i) => (
+              <div 
+                key={i} 
+                className="bg-white rounded-xl md:rounded-2xl border border-gray-100 shadow-[0_4px_16px_rgba(0,0,0,0.04)] overflow-hidden flex flex-row xl:flex-col h-[180px] sm:h-[195px] md:h-[215px] xl:h-[380px] animate-pulse"
+              >
+                <div className="w-[42%] sm:w-[44%] md:w-[45%] xl:w-full h-full xl:h-[240px] bg-gray-100 shrink-0" />
+                <div className="flex flex-col flex-1 p-3.5 sm:p-4 md:p-5 xl:p-6 justify-between">
+                  <div className="space-y-2 sm:space-y-3">
+                    <div className="h-4 bg-gray-200 rounded w-4/5" />
+                    <div className="h-3 bg-gray-100 rounded w-full" />
+                    <div className="h-3 bg-gray-100 rounded w-2/3" />
+                  </div>
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 rounded-full bg-gray-100 self-end mt-2" />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : activeCategoryProducts.length === 0 ? (
           <div className="w-full text-center py-12 text-gray-500 bg-gray-50 rounded-xl border border-gray-100">
             No products available in this category yet.
