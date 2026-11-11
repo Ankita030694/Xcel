@@ -52,6 +52,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   ShieldCheck,
+  Clock,
 } from "lucide-react";
 
 const DEFAULT_CATEGORIES = [
@@ -195,6 +196,8 @@ export default function AdminBlogsPage() {
   const [selectedAuthor, setSelectedAuthor] = useState(AUTHOR_PROFILES[0].name);
   const [authorRole, setAuthorRole] = useState(AUTHOR_PROFILES[0].role);
   const [publishDate, setPublishDate] = useState("");
+  const [readTime, setReadTime] = useState("");
+  const [isReadTimeManual, setIsReadTimeManual] = useState(false);
   const [lead, setLead] = useState("");
   const [coverImage, setCoverImage] = useState("");
   const [bannerImage, setBannerImage] = useState("");
@@ -295,6 +298,13 @@ export default function AdminBlogsPage() {
     }
   };
 
+  // Auto-calculate read time from content unless manually edited
+  useEffect(() => {
+    if (!isReadTimeManual && description && description !== "<p></p>") {
+      setReadTime(calculateReadTime(description));
+    }
+  }, [description, isReadTimeManual]);
+
   // 4. Author Change Handler
   const handleAuthorChange = (name: string) => {
     setSelectedAuthor(name);
@@ -316,6 +326,8 @@ export default function AdminBlogsPage() {
     setSelectedAuthor(AUTHOR_PROFILES[0].name);
     setAuthorRole(AUTHOR_PROFILES[0].role);
     setPublishDate(new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }));
+    setReadTime("");
+    setIsReadTimeManual(false);
     setLead("");
     setCoverImage("");
     setBannerImage("");
@@ -358,12 +370,15 @@ export default function AdminBlogsPage() {
     setSelectedAuthor(blog.author || AUTHOR_PROFILES[0].name);
     setAuthorRole(blog.authorRole || AUTHOR_PROFILES[0].role);
     setPublishDate(blog.date || "");
+    const initialHtml = convertSectionsToHtml(blog);
+    setReadTime(blog.readTime || calculateReadTime(initialHtml));
+    setIsReadTimeManual(Boolean(blog.readTime));
     setLead(blog.lead || "");
     setCoverImage(blog.imageSrc || "");
     setBannerImage(blog.bannerSrc || "");
     setShowCoverUrlInput(false);
     setShowBannerUrlInput(false);
-    setDescription(convertSectionsToHtml(blog));
+    setDescription(initialHtml);
     setShortVersionPoints(blog.shortVersion && blog.shortVersion.length > 0 ? blog.shortVersion : []);
     setActionSteps(Array.isArray(blog.actionSteps) ? blog.actionSteps : DEFAULT_ACTION_STEPS);
     setDisclaimer(blog.disclaimer || DEFAULT_DISCLAIMER);
@@ -407,6 +422,8 @@ export default function AdminBlogsPage() {
           selectedAuthor,
           authorRole,
           publishDate,
+          readTime,
+          isReadTimeManual,
           lead,
           coverImage,
           bannerImage,
@@ -440,6 +457,8 @@ export default function AdminBlogsPage() {
     selectedAuthor,
     authorRole,
     publishDate,
+    readTime,
+    isReadTimeManual,
     lead,
     coverImage,
     bannerImage,
@@ -476,6 +495,8 @@ export default function AdminBlogsPage() {
         if (p.selectedAuthor !== undefined) setSelectedAuthor(p.selectedAuthor);
         if (p.authorRole !== undefined) setAuthorRole(p.authorRole);
         if (p.publishDate !== undefined) setPublishDate(p.publishDate);
+        if (p.readTime !== undefined) setReadTime(p.readTime);
+        if (p.isReadTimeManual !== undefined) setIsReadTimeManual(p.isReadTimeManual);
         if (p.lead !== undefined) setLead(p.lead);
         if (p.coverImage !== undefined) setCoverImage(p.coverImage);
         if (p.bannerImage !== undefined) setBannerImage(p.bannerImage);
@@ -593,7 +614,7 @@ export default function AdminBlogsPage() {
     try {
       setIsSaving(true);
 
-      const calculatedRead = calculateReadTime(description);
+      const finalReadTime = readTime.trim() || calculateReadTime(description);
       const finalLead = lead.trim() || calibrateMetaDescription(description, title);
       const finalMetaTitle = metaTitle.trim() || calibrateMetaTitle(title);
       const finalMetaDesc = metaDescription.trim() || calibrateMetaDescription(description, title);
@@ -607,7 +628,7 @@ export default function AdminBlogsPage() {
         author: selectedAuthor,
         authorRole,
         date: publishDate || new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
-        readTime: calculatedRead,
+        readTime: finalReadTime,
         lead: finalLead,
         imageSrc: finalImage,
         bannerSrc: finalBanner,
@@ -1467,6 +1488,48 @@ export default function AdminBlogsPage() {
                           placeholder="e.g. 10th May 2026"
                           className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:border-[#32589c]"
                         />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-semibold text-gray-700 flex items-center gap-1">
+                            <Clock size={13} className="text-[#32589c]" />
+                            <span>Read Time</span>
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const calc = calculateReadTime(description);
+                              setReadTime(calc);
+                              setIsReadTimeManual(false);
+                              showToast(`Auto-calculated: ${calc}`, "info");
+                            }}
+                            className="text-[11px] text-[#32589c] hover:underline font-medium cursor-pointer"
+                            title="Recalculate read time from article content"
+                          >
+                            Auto-calculate
+                          </button>
+                        </div>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={readTime}
+                            onChange={(e) => {
+                              setIsReadTimeManual(true);
+                              setReadTime(e.target.value);
+                            }}
+                            placeholder={calculateReadTime(description) || "e.g. ~3 mins"}
+                            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-800 focus:outline-none focus:border-[#32589c]"
+                          />
+                          {isReadTimeManual && (
+                            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] uppercase font-bold text-[#0a2766] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 pointer-events-none">
+                              Custom
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-gray-500 mt-1">
+                          Estimated reading time shown on blog cards (e.g. &ldquo;~3 mins&rdquo;).
+                        </p>
                       </div>
 
                       <div>

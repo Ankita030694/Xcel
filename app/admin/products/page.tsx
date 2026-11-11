@@ -8,6 +8,7 @@ import { auth, db, storage } from '../../../lib/firebase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Trash2, Plus, X, Edit, ArrowUp, ArrowDown, ExternalLink, Layers, ArrowUpDown, Check, RotateCcw, ChevronDown, GripVertical } from 'lucide-react';
+import ProductDescriptionEditor from '../components/products/ProductDescriptionEditor';
 
 interface ProductFeature {
   title: string;
@@ -497,7 +498,13 @@ export default function ProductsDashboard() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !categoryId || !detailDescription.trim()) {
+    const isHtmlEmpty = (str: string) => {
+      if (!str) return true;
+      const stripped = str.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+      return stripped.length === 0;
+    };
+
+    if (!name || !categoryId || isHtmlEmpty(detailDescription)) {
       setError("Please fill all required fields (Name, Category, and Detail Description).");
       return;
     }
@@ -1028,7 +1035,7 @@ export default function ProductsDashboard() {
                           )}
                           <div>
                             <span className="inline-block text-[10px] font-bold text-gray-700 bg-gray-100 px-1.5 py-0.5 rounded mr-1">Detail</span>
-                            <span className="text-xs text-gray-600 line-clamp-1">{product.detailDescription || product.shortDescription || '-'}</span>
+                            <span className="text-xs text-gray-600 line-clamp-1">{(product.detailDescription || product.shortDescription || '-').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim() || '-'}</span>
                           </div>
                         </td>
                         <td className="py-4 px-6 text-right whitespace-nowrap">
@@ -1167,15 +1174,11 @@ export default function ProductsDashboard() {
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Product Description * <span className="text-xs font-normal text-gray-500">(Displayed on the product detail page)</span>
+                      Product Description * <span className="text-xs font-normal text-gray-500">(Displayed on the product detail page — supports bold, italic, underline & colors)</span>
                     </label>
-                    <textarea 
-                      required 
-                      value={detailDescription} 
-                      onChange={e => setDetailDescription(e.target.value)} 
-                      rows={4} 
-                      className="w-full border border-gray-300 rounded-md p-2 text-gray-900 focus:ring-[#32589c] focus:border-[#32589c] outline-none" 
-                      placeholder="Detailed overview for the product page (supports multiple paragraphs and **bold** text)..."
+                    <ProductDescriptionEditor
+                      content={detailDescription}
+                      onChange={(html) => setDetailDescription(html)}
                     />
                   </div>
 

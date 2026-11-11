@@ -1072,10 +1072,14 @@ export default function ProductDetailPage() {
               {product.name}
             </h1>
             
-            <div className="text-[#363636] text-[15px] sm:text-[16px] leading-relaxed mb-6 space-y-3">
-              {(product.detailDescription || product.shortDescription || '').split('\n').filter(Boolean).map((para: string, i: number) => (
-                <p key={i} dangerouslySetInnerHTML={{ __html: para.replace(/\*\*(.*?)\*\*/g, '<strong class="text-[#0a2766] font-semibold">$1</strong>') }} />
-              ))}
+            <div className="text-[#363636] text-[15px] sm:text-[16px] leading-relaxed mb-6 space-y-3 [&_p]:mb-3 [&_strong]:font-semibold [&_em]:italic [&_u]:underline [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1 [&_ul]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:space-y-1 [&_ol]:my-2">
+              {/<[a-z][\s\S]*>/i.test(product.detailDescription || '') ? (
+                <div dangerouslySetInnerHTML={{ __html: product.detailDescription }} />
+              ) : (
+                (product.detailDescription || product.shortDescription || '').split('\n').filter(Boolean).map((para: string, i: number) => (
+                  <p key={i} dangerouslySetInnerHTML={{ __html: para.replace(/\*\*(.*?)\*\*/g, '<strong class="text-[#0a2766] font-semibold">$1</strong>') }} />
+                ))
+              )}
             </div>
 
             {/* Highlighted Lines */}
