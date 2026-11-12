@@ -195,6 +195,9 @@ export default function AdminBlogsPage() {
   const [customCategory, setCustomCategory] = useState("");
   const [selectedAuthor, setSelectedAuthor] = useState(AUTHOR_PROFILES[0].name);
   const [authorRole, setAuthorRole] = useState(AUTHOR_PROFILES[0].role);
+  const [isCustomAuthor, setIsCustomAuthor] = useState(false);
+  const [customAuthorName, setCustomAuthorName] = useState("");
+  const [customAuthorRole, setCustomAuthorRole] = useState("");
   const [publishDate, setPublishDate] = useState("");
   const [readTime, setReadTime] = useState("");
   const [isReadTimeManual, setIsReadTimeManual] = useState(false);
@@ -307,6 +310,13 @@ export default function AdminBlogsPage() {
 
   // 4. Author Change Handler
   const handleAuthorChange = (name: string) => {
+    if (name === "__custom__") {
+      setIsCustomAuthor(true);
+      setCustomAuthorName("");
+      setCustomAuthorRole("");
+      return;
+    }
+    setIsCustomAuthor(false);
     setSelectedAuthor(name);
     const profile = AUTHOR_PROFILES.find((p) => p.name === name);
     if (profile) {
@@ -325,6 +335,9 @@ export default function AdminBlogsPage() {
     setCustomCategory("");
     setSelectedAuthor(AUTHOR_PROFILES[0].name);
     setAuthorRole(AUTHOR_PROFILES[0].role);
+    setIsCustomAuthor(false);
+    setCustomAuthorName("");
+    setCustomAuthorRole("");
     setPublishDate(new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }));
     setReadTime("");
     setIsReadTimeManual(false);
@@ -367,8 +380,21 @@ export default function AdminBlogsPage() {
       setIsCustomCategory(true);
       setCustomCategory(blogCat);
     }
-    setSelectedAuthor(blog.author || AUTHOR_PROFILES[0].name);
-    setAuthorRole(blog.authorRole || AUTHOR_PROFILES[0].role);
+    const authorVal = blog.author || AUTHOR_PROFILES[0].name;
+    const isPreset = AUTHOR_PROFILES.some((p) => p.name === authorVal);
+    if (isPreset) {
+      setIsCustomAuthor(false);
+      setSelectedAuthor(authorVal);
+      setAuthorRole(blog.authorRole || AUTHOR_PROFILES.find((p) => p.name === authorVal)?.role || AUTHOR_PROFILES[0].role);
+      setCustomAuthorName("");
+      setCustomAuthorRole("");
+    } else {
+      setIsCustomAuthor(true);
+      setSelectedAuthor("__custom__");
+      setCustomAuthorName(authorVal);
+      setAuthorRole(blog.authorRole || "");
+      setCustomAuthorRole(blog.authorRole || "");
+    }
     setPublishDate(blog.date || "");
     const initialHtml = convertSectionsToHtml(blog);
     setReadTime(blog.readTime || calculateReadTime(initialHtml));
@@ -421,6 +447,9 @@ export default function AdminBlogsPage() {
           customCategory,
           selectedAuthor,
           authorRole,
+          isCustomAuthor,
+          customAuthorName,
+          customAuthorRole,
           publishDate,
           readTime,
           isReadTimeManual,
@@ -430,6 +459,7 @@ export default function AdminBlogsPage() {
           description,
           shortVersionPoints,
           actionSteps,
+          disclaimer,
           ctaTagline,
           ctaHeading,
           ctaDescription,
@@ -456,6 +486,9 @@ export default function AdminBlogsPage() {
     customCategory,
     selectedAuthor,
     authorRole,
+    isCustomAuthor,
+    customAuthorName,
+    customAuthorRole,
     publishDate,
     readTime,
     isReadTimeManual,
@@ -465,6 +498,7 @@ export default function AdminBlogsPage() {
     description,
     shortVersionPoints,
     actionSteps,
+    disclaimer,
     ctaTagline,
     ctaHeading,
     ctaDescription,
@@ -494,6 +528,9 @@ export default function AdminBlogsPage() {
         }
         if (p.selectedAuthor !== undefined) setSelectedAuthor(p.selectedAuthor);
         if (p.authorRole !== undefined) setAuthorRole(p.authorRole);
+        if (p.isCustomAuthor !== undefined) setIsCustomAuthor(p.isCustomAuthor);
+        if (p.customAuthorName !== undefined) setCustomAuthorName(p.customAuthorName);
+        if (p.customAuthorRole !== undefined) setCustomAuthorRole(p.customAuthorRole);
         if (p.publishDate !== undefined) setPublishDate(p.publishDate);
         if (p.readTime !== undefined) setReadTime(p.readTime);
         if (p.isReadTimeManual !== undefined) setIsReadTimeManual(p.isReadTimeManual);
@@ -503,6 +540,7 @@ export default function AdminBlogsPage() {
         if (p.description !== undefined) setDescription(p.description);
         if (p.shortVersionPoints !== undefined) setShortVersionPoints(p.shortVersionPoints);
         if (p.actionSteps !== undefined) setActionSteps(p.actionSteps);
+        if (p.disclaimer !== undefined) setDisclaimer(p.disclaimer);
         if (p.ctaTagline !== undefined) setCtaTagline(p.ctaTagline);
         if (p.ctaHeading !== undefined) setCtaHeading(p.ctaHeading);
         if (p.ctaDescription !== undefined) setCtaDescription(p.ctaDescription);
@@ -620,13 +658,15 @@ export default function AdminBlogsPage() {
       const finalMetaDesc = metaDescription.trim() || calibrateMetaDescription(description, title);
       const finalImage = coverImage || "/blog1/Blog 1- 1080 x 1080.svg";
       const finalBanner = bannerImage || finalImage;
+      const finalAuthor = isCustomAuthor ? (customAuthorName.trim() || AUTHOR_PROFILES[0].name) : selectedAuthor;
+      const finalAuthorRole = isCustomAuthor ? customAuthorRole.trim() : authorRole.trim();
 
       const payload: Partial<BlogArticle> = {
         title: title.trim(),
         slug: cleanSlug,
         category: finalCategory || DEFAULT_CATEGORIES[0],
-        author: selectedAuthor,
-        authorRole,
+        author: finalAuthor,
+        authorRole: finalAuthorRole,
         date: publishDate || new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
         readTime: finalReadTime,
         lead: finalLead,
@@ -635,7 +675,7 @@ export default function AdminBlogsPage() {
         description,
         shortVersion: shortVersionPoints.filter((p) => p.trim()),
         actionSteps: actionSteps.filter((s) => s.trim()),
-        disclaimer: disclaimer.trim() || DEFAULT_DISCLAIMER,
+        disclaimer: disclaimer.trim(),
         ctaTagline: ctaTagline.trim() || DEFAULT_CTA_TAGLINE,
         ctaHeading: ctaHeading.trim() || DEFAULT_CTA_HEADING,
         ctaDescription: ctaDescription.trim() || DEFAULT_CTA_DESCRIPTION,
@@ -1142,6 +1182,68 @@ export default function AdminBlogsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Article Note (formerly Notice) Editor */}
+              <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm space-y-4">
+                <div className="border-b border-gray-100 pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5 text-amber-600" />
+                      <h3 className="text-sm font-bold text-[#0a2766] uppercase tracking-wide">
+                        Article Note / Technical Advisory
+                      </h3>
+                    </div>
+                    <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200">
+                      Editable Section
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Technical advisory note displayed in a shaded box at the very end of the article under <strong className="text-gray-700">Note:</strong>.
+                  </p>
+                </div>
+
+                <div className="space-y-3">
+                  <textarea
+                    rows={3}
+                    value={disclaimer}
+                    onChange={(e) => setDisclaimer(e.target.value)}
+                    placeholder="Enter technical note or advisory text..."
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none focus:border-[#32589c] resize-y leading-relaxed"
+                  />
+
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setDisclaimer(DEFAULT_DISCLAIMER)}
+                      className="text-xs text-[#32589c] hover:underline font-medium cursor-pointer"
+                    >
+                      Reset to standard note
+                    </button>
+                    {disclaimer.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => setDisclaimer("")}
+                        className="text-xs text-red-500 hover:text-red-700 underline cursor-pointer"
+                      >
+                        Clear note (hide from article)
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Live Card Preview */}
+                  {disclaimer.trim() && (
+                    <div className="pt-2">
+                      <span className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                        Live Note Preview
+                      </span>
+                      <div className="p-5 rounded-xl bg-gray-50 border border-gray-200/80 text-xs sm:text-[13px] leading-relaxed text-gray-500">
+                        <span className="font-bold text-gray-700">Note: </span>
+                        {disclaimer}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Right Settings Sidebar (Sticky alongside the editorial body) */}
@@ -1465,18 +1567,69 @@ export default function AdminBlogsPage() {
                       </div>
 
                       <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-1">Author Profile</label>
-                        <select
-                          value={selectedAuthor}
-                          onChange={(e) => handleAuthorChange(e.target.value)}
-                          className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-gray-800 font-medium focus:outline-none focus:border-[#32589c]"
-                        >
-                          {AUTHOR_PROFILES.map((a) => (
-                            <option key={a.name} value={a.name}>
-                              {a.name}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs font-semibold text-gray-700">Author Profile</label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!isCustomAuthor) {
+                                setIsCustomAuthor(true);
+                                setCustomAuthorName(selectedAuthor !== "__custom__" ? selectedAuthor : "");
+                                setCustomAuthorRole(authorRole);
+                              } else {
+                                setIsCustomAuthor(false);
+                                setSelectedAuthor(AUTHOR_PROFILES[0].name);
+                                setAuthorRole(AUTHOR_PROFILES[0].role);
+                              }
+                            }}
+                            className="text-[11px] text-[#32589c] hover:underline font-medium cursor-pointer"
+                          >
+                            {isCustomAuthor ? "← Choose from presets" : "+ Enter custom author"}
+                          </button>
+                        </div>
+
+                        {!isCustomAuthor ? (
+                          <select
+                            value={selectedAuthor}
+                            onChange={(e) => handleAuthorChange(e.target.value)}
+                            className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm bg-white text-gray-800 font-medium focus:outline-none focus:border-[#32589c]"
+                          >
+                            {AUTHOR_PROFILES.map((a) => (
+                              <option key={a.name} value={a.name}>
+                                {a.name} ({a.role})
+                              </option>
+                            ))}
+                            <option value="__custom__">+ Enter Custom Author Name...</option>
+                          </select>
+                        ) : (
+                          <div className="space-y-2 bg-blue-50/40 p-2.5 rounded-lg border border-blue-200">
+                            <div>
+                              <label className="block text-[11px] font-bold text-[#0a2766] uppercase tracking-wider mb-1">
+                                Author Name *
+                              </label>
+                              <input
+                                type="text"
+                                value={customAuthorName}
+                                onChange={(e) => setCustomAuthorName(e.target.value)}
+                                placeholder="e.g. Dr. Rajesh Kumar or Guest Author"
+                                className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm text-gray-800 bg-white font-medium focus:outline-none focus:border-[#32589c]"
+                                autoFocus
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-1">
+                                Author Role / Title <span className="text-gray-400 font-normal lowercase">(optional)</span>
+                              </label>
+                              <input
+                                type="text"
+                                value={customAuthorRole}
+                                onChange={(e) => setCustomAuthorRole(e.target.value)}
+                                placeholder="e.g. Senior Laundry Operations Consultant"
+                                className="w-full border border-gray-300 rounded px-3 py-1.5 text-xs text-gray-800 bg-white focus:outline-none focus:border-[#32589c]"
+                              />
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div>

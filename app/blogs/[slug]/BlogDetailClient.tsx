@@ -404,10 +404,10 @@ export default function BlogDetailClient({
               </div>
             )}
 
-            {/* Technical Disclaimer Box */}
+            {/* Technical Disclaimer / Note Box */}
             {article.disclaimer && (
               <div className="p-6 rounded-xl bg-gray-50 border border-gray-200/80 text-xs sm:text-[13px] leading-relaxed text-gray-500">
-                <span className="font-bold text-gray-700">Notice: </span>
+                <span className="font-bold text-gray-700">Note: </span>
                 {article.disclaimer}
               </div>
             )}
