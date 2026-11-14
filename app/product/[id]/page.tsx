@@ -190,7 +190,7 @@ export default function ProductDetailPage() {
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [loadingRelated, setLoadingRelated] = useState<boolean>(true);
   const [activeSection, setActiveSection] = useState<string | null>('features');
-  const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
+  const [mobileExpanded, setMobileExpanded] = useState<Record<string, boolean>>({});
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   if (id !== prevId) {
@@ -205,7 +205,7 @@ export default function ProductDetailPage() {
     }
     setActiveImageIndex(0);
     setActiveSection('features');
-    setMobileExpanded(null);
+    setMobileExpanded({});
     setRelatedProducts([]);
     setLoadingRelated(true);
   }
@@ -333,18 +333,11 @@ export default function ProductDetailPage() {
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
   const mobileAccordionRef = useRef<HTMLDivElement>(null);
   const desktopTabsRef = useRef<HTMLDivElement>(null);
-  const mobileAccordionScrollTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const SECTION_IDS = ['features', 'why-us', 'industries', 'faqs'];
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
       window.history.scrollRestoration = 'manual';
     }
-    return () => {
-      if (mobileAccordionScrollTimerRef.current) {
-        clearTimeout(mobileAccordionScrollTimerRef.current);
-      }
-    };
   }, []);
 
   const isTabletOrIpadViewport = () => {
@@ -720,71 +713,11 @@ export default function ProductDetailPage() {
   }, [activeImageIndex]);
 
   const handleMobileAccordionClick = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
-    const isOpening = mobileExpanded !== id;
-    const prevOpenId = mobileExpanded;
-
-    setMobileExpanded(prev => (prev === id ? null : id));
-
-    if (!isOpening) {
-      // User is collapsing the currently open tab; do not auto-scroll
-      return;
-    }
-
-    if (mobileAccordionScrollTimerRef.current) {
-      clearTimeout(mobileAccordionScrollTimerRef.current);
-      mobileAccordionScrollTimerRef.current = null;
-    }
-
-    const buttonId = `mobile-tab-${id}`;
-    const btn = document.getElementById(buttonId) || (e.currentTarget as HTMLElement);
-    if (!btn) return;
-
-    const header = document.querySelector('header');
-    const headerHeight = header ? header.offsetHeight : 124;
-    // 10px spacing below sticky header so the tab header is fully in view
-    const headerOffset = headerHeight + 10;
-
-    const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
-    const btnRect = btn.getBoundingClientRect();
-    const currentBtnDocY = btnRect.top + currentScroll;
-
-    // Calculate collapse offset if a previously open tab above this one is now closing
-    const sectionOrder = ['features', 'why-us', 'industries', 'faqs'];
-    const targetIdx = sectionOrder.indexOf(id);
-    const prevIdx = prevOpenId ? sectionOrder.indexOf(prevOpenId) : -1;
-
-    let collapseOffset = 0;
-    if (prevIdx !== -1 && prevIdx < targetIdx && prevOpenId) {
-      const prevContent = document.getElementById(`mobile-content-${prevOpenId}`);
-      if (prevContent) {
-        collapseOffset = prevContent.offsetHeight;
-      }
-    }
-
-    const restingDocY = currentBtnDocY - collapseOffset;
-    const targetScrollY = Math.max(0, restingDocY - headerOffset);
-
-    // Auto-scroll smoothly from current position to the very beginning of the tab
-    window.scrollTo({
-      top: targetScrollY,
-      behavior: 'smooth'
-    });
-
-    // Secondary alignment verification after the 360ms accordion transition finishes
-    mobileAccordionScrollTimerRef.current = setTimeout(() => {
-      const settledBtn = document.getElementById(buttonId);
-      if (settledBtn) {
-        const settledRect = settledBtn.getBoundingClientRect();
-        if (Math.abs(settledRect.top - headerOffset) > 6) {
-          const latestScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
-          const adjustedTarget = latestScroll + settledRect.top - headerOffset;
-          window.scrollTo({
-            top: Math.max(0, adjustedTarget),
-            behavior: 'smooth'
-          });
-        }
-      }
-    }, 380);
+    e.preventDefault();
+    setMobileExpanded(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
   };
 
   const handleDesktopTabClick = (sectionId: string) => {
@@ -1125,14 +1058,14 @@ export default function ProductDetailPage() {
           className="flex lg:hidden flex-col mb-12 bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden divide-y divide-gray-100"
         >
           {sections.map(section => {
-            const isSectionOpen = mobileExpanded === section.id;
+            const isSectionOpen = Boolean(mobileExpanded[section.id]);
             return (
               <div key={section.id} id={`mobile-section-${section.id}`} className="flex flex-col bg-white">
                 <button 
-                  data-accordion-btn="true"
+                  type="button"
                   id={`mobile-tab-${section.id}`}
                   onClick={(e) => handleMobileAccordionClick(e, section.id)} 
-                  className="flex flex-row items-center justify-between p-4 sm:p-5 text-left w-full transition-colors bg-[#f4f7fb] cursor-pointer scroll-mt-36"
+                  className="flex flex-row items-center justify-between p-4 sm:p-5 text-left w-full transition-colors bg-[#f4f7fb] cursor-pointer"
                   aria-expanded={isSectionOpen}
                 >
                   <div className="flex flex-row items-center gap-4">
