@@ -190,7 +190,7 @@ export default function ProductDetailPage() {
   const [relatedProducts, setRelatedProducts] = useState<any[]>([]);
   const [loadingRelated, setLoadingRelated] = useState<boolean>(true);
   const [activeSection, setActiveSection] = useState<string | null>('features');
-  const [mobileExpanded, setMobileExpanded] = useState<Record<string, boolean>>({});
+  const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   if (id !== prevId) {
@@ -205,7 +205,7 @@ export default function ProductDetailPage() {
     }
     setActiveImageIndex(0);
     setActiveSection('features');
-    setMobileExpanded({});
+    setMobileExpanded(null);
     setRelatedProducts([]);
     setLoadingRelated(true);
   }
@@ -714,10 +714,42 @@ export default function ProductDetailPage() {
 
   const handleMobileAccordionClick = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
     e.preventDefault();
-    setMobileExpanded(prev => ({
-      ...prev,
-      [id]: !prev[id]
-    }));
+    const isOpening = mobileExpanded !== id;
+
+    if (!isOpening) {
+      setMobileExpanded(null);
+      return;
+    }
+
+    setMobileExpanded(id);
+
+    const container = mobileAccordionRef.current;
+    if (!container) return;
+
+    const sectionOrder = ['features', 'why-us', 'industries', 'faqs'];
+    const targetIdx = sectionOrder.indexOf(id);
+    if (targetIdx === -1) return;
+
+    const header = document.querySelector('header');
+    const headerHeight = header ? header.offsetHeight : 124;
+    // 14px clearance just above the tab header below the sticky header
+    const headerOffset = headerHeight + 14;
+
+    const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
+    const containerDocTop = container.getBoundingClientRect().top + currentScroll;
+
+    let accumulatedTop = 0;
+    for (let i = 0; i < targetIdx; i++) {
+      const prevBtn = document.getElementById(`mobile-tab-${sectionOrder[i]}`);
+      accumulatedTop += (prevBtn?.offsetHeight || 72) + 1;
+    }
+
+    const targetScrollY = Math.max(0, containerDocTop + accumulatedTop - headerOffset);
+
+    window.scrollTo({
+      top: targetScrollY,
+      behavior: 'smooth'
+    });
   };
 
   const handleDesktopTabClick = (sectionId: string) => {
@@ -1058,7 +1090,7 @@ export default function ProductDetailPage() {
           className="flex lg:hidden flex-col mb-12 bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden divide-y divide-gray-100"
         >
           {sections.map(section => {
-            const isSectionOpen = Boolean(mobileExpanded[section.id]);
+            const isSectionOpen = mobileExpanded === section.id;
             return (
               <div key={section.id} id={`mobile-section-${section.id}`} className="flex flex-col bg-white">
                 <button 
