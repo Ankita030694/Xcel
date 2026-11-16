@@ -735,16 +735,22 @@ export default function ProductDetailPage() {
       return;
     }
 
+    // ── Step 1: Read the clicked button's position RIGHT NOW, before any DOM changes ──
+    // This gives us a stable, accurate scroll target no matter what else changes.
+    const btn = document.getElementById(`mobile-tab-${id}`);
+    const header = document.querySelector('header');
+    const headerHeight = header ? header.offsetHeight : 124;
+    const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
+
+    let targetScrollY = currentScroll; // fallback: stay put
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      // Bring the clicked tab to 14px below the sticky header
+      targetScrollY = Math.max(0, Math.round(currentScroll + rect.top - headerHeight - 14));
+    }
+
+    // ── Step 2: Instantly collapse the previously open tab (no CSS transition) ──
     const prevOpenTab = mobileExpandedRef.current;
-    const sectionOrder = ['features', 'why-us', 'industries', 'faqs'];
-    const targetIdx = sectionOrder.indexOf(id);
-    if (targetIdx === -1) return;
-
-    const container = mobileAccordionRef.current;
-    if (!container) return;
-
-    // If a different tab is currently open, collapse it instantly via direct DOM manipulation
-    // so the page height is stable BEFORE we compute targetScrollY and start smooth scroll.
     if (prevOpenTab && prevOpenTab !== id) {
       const prevContent = document.getElementById(`mobile-content-${prevOpenTab}`);
       if (prevContent) {
@@ -759,51 +765,33 @@ export default function ProductDetailPage() {
       }
     }
 
-    // Update ref + React state
+    // ── Step 3: Update state so the new tab expands with its CSS animation ──
     mobileExpandedRef.current = id;
     setMobileExpanded(id);
 
-    const header = document.querySelector('header');
-    const headerHeight = header ? header.offsetHeight : 124;
-    const headerOffset = headerHeight + 14;
+    // ── Step 4: Smooth-scroll to the pre-computed target ──
+    try {
+      window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
+    } catch (_err) {
+      window.scrollTo(0, targetScrollY);
+    }
 
-    // Recalculate after DOM collapse is applied (use rAF to let layout flush)
-    requestAnimationFrame(() => {
-      const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
-      const containerDocTop = container.getBoundingClientRect().top + currentScroll;
-
-      let accumulatedTop = 0;
-      for (let i = 0; i < targetIdx; i++) {
-        const prevBtn = document.getElementById(`mobile-tab-${sectionOrder[i]}`);
-        accumulatedTop += (prevBtn?.offsetHeight || 72) + 1;
-      }
-
-      const targetScrollY = Math.max(0, Math.round(containerDocTop + accumulatedTop - headerOffset));
-
-      // Smooth scroll to just above the clicked tab
-      try {
-        window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
-      } catch (err) {
-        window.scrollTo(0, targetScrollY);
-      }
-
-      // Restore CSS transitions after scroll starts so the new tab expands with animation
-      if (prevOpenTab && prevOpenTab !== id) {
+    // ── Step 5: Restore transitions on the collapsed tab after a brief moment ──
+    if (prevOpenTab && prevOpenTab !== id) {
+      setTimeout(() => {
         const prevContent = document.getElementById(`mobile-content-${prevOpenTab}`);
         if (prevContent) {
-          setTimeout(() => {
-            prevContent.style.transition = '';
-            prevContent.style.gridTemplateRows = '';
-            const inner = prevContent.querySelector<HTMLElement>('.smooth-accordion-inner > *');
-            if (inner) {
-              inner.style.transition = '';
-              inner.style.opacity = '';
-              inner.style.transform = '';
-            }
-          }, 50);
+          prevContent.style.transition = '';
+          prevContent.style.gridTemplateRows = '';
+          const inner = prevContent.querySelector<HTMLElement>('.smooth-accordion-inner > *');
+          if (inner) {
+            inner.style.transition = '';
+            inner.style.opacity = '';
+            inner.style.transform = '';
+          }
         }
-      }
-    });
+      }, 50);
+    }
   };
 
   const handleDesktopTabClick = (sectionId: string) => {
