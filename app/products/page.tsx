@@ -668,7 +668,7 @@ function ProductsContent() {
               return (
                 <Link 
                   href={productUrl} 
-                  scroll={false}
+                  scroll={true}
                   prefetch={true}
                   key={product.id} 
                   onClick={() => {

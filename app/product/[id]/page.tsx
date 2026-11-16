@@ -221,7 +221,6 @@ export default function ProductDetailPage() {
   const carouselStartXRef = useRef(0);
   const carouselScrollLeftRef = useRef(0);
   const carouselHasMovedRef = useRef(false);
-  const prevLoadingRef = useRef(loading);
 
   const updateScrollButtons = () => {
     if (carouselRef.current) {
@@ -396,8 +395,29 @@ export default function ProductDetailPage() {
     return (w >= 640 && w <= 1024) || (isIOSorIPad && w >= 640) || (isTouch && w >= 640 && w <= 1366);
   };
 
+  const userScrolledRef = useRef(false);
+
+  useEffect(() => {
+    const handleUserInteraction = () => {
+      userScrolledRef.current = true;
+    };
+
+    window.addEventListener('wheel', handleUserInteraction, { passive: true });
+    window.addEventListener('touchmove', handleUserInteraction, { passive: true });
+    window.addEventListener('touchstart', handleUserInteraction, { passive: true });
+    window.addEventListener('keydown', handleUserInteraction, { passive: true });
+
+    return () => {
+      window.removeEventListener('wheel', handleUserInteraction);
+      window.removeEventListener('touchmove', handleUserInteraction);
+      window.removeEventListener('touchstart', handleUserInteraction);
+      window.removeEventListener('keydown', handleUserInteraction);
+    };
+  }, []);
+
   const forceScrollToTop = () => {
     if (typeof window === 'undefined') return;
+    if (userScrolledRef.current) return;
     try {
       if ('scrollRestoration' in window.history) {
         window.history.scrollRestoration = 'manual';
@@ -408,15 +428,12 @@ export default function ProductDetailPage() {
       } catch (err) {}
       if (document.scrollingElement) {
         document.scrollingElement.scrollTop = 0;
-        document.scrollingElement.scrollLeft = 0;
       }
       if (document.documentElement) {
         document.documentElement.scrollTop = 0;
-        document.documentElement.scrollLeft = 0;
       }
       if (document.body) {
         document.body.scrollTop = 0;
-        document.body.scrollLeft = 0;
       }
     } catch (e) {
       try {
@@ -428,49 +445,26 @@ export default function ProductDetailPage() {
   // Explicitly ensures breadcrumbs are visible and the page starts cleanly at the top when opening any product
   const ensureBreadcrumbsVisible = () => {
     if (typeof window === 'undefined') return;
-
+    if (userScrolledRef.current) return;
     forceScrollToTop();
-
-    const bc = document.getElementById('product-breadcrumbs');
-    const header = document.querySelector('header');
-    const headerHeight = header ? header.offsetHeight : 124;
-
-    if (bc) {
-      const rect = bc.getBoundingClientRect();
-      if (rect.top < headerHeight + 8 || window.scrollY > 0) {
-        forceScrollToTop();
-        if (window.scrollY > 0) {
-          try {
-            window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
-          } catch (e) {}
-          if (document.documentElement) document.documentElement.scrollTop = 0;
-          if (document.body) document.body.scrollTop = 0;
-        }
-      }
-    }
   };
 
   useIsomorphicLayoutEffect(() => {
+    userScrolledRef.current = false;
     forceScrollToTop();
-    ensureBreadcrumbsVisible();
     if (carouselRef.current) {
       carouselRef.current.scrollLeft = 0;
     }
   }, [id]);
 
   useEffect(() => {
+    userScrolledRef.current = false;
     forceScrollToTop();
-    ensureBreadcrumbsVisible();
     const rId = requestAnimationFrame(() => {
-      forceScrollToTop();
-      ensureBreadcrumbsVisible();
+      if (!userScrolledRef.current) {
+        forceScrollToTop();
+      }
     });
-
-    const delays = [20, 50, 100, 200, 350, 550, 850, 1200];
-    const timers = delays.map((ms) => setTimeout(() => {
-      forceScrollToTop();
-      ensureBreadcrumbsVisible();
-    }, ms));
 
     setActiveImageIndex(0);
     if (carouselRef.current) {
@@ -485,14 +479,13 @@ export default function ProductDetailPage() {
     }
 
     const onPageShow = () => {
+      userScrolledRef.current = false;
       forceScrollToTop();
-      ensureBreadcrumbsVisible();
     };
     window.addEventListener('pageshow', onPageShow);
 
     return () => {
       cancelAnimationFrame(rId);
-      timers.forEach(clearTimeout);
       window.removeEventListener('pageshow', onPageShow);
     };
   }, [id]);
@@ -702,41 +695,6 @@ export default function ProductDetailPage() {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [relatedProducts]);
-
-  useEffect(() => {
-    prevLoadingRef.current = loading;
-    if (product && typeof window !== 'undefined') {
-      forceScrollToTop();
-      ensureBreadcrumbsVisible();
-      const rId = requestAnimationFrame(() => {
-        forceScrollToTop();
-        ensureBreadcrumbsVisible();
-      });
-      const t1 = setTimeout(() => {
-        forceScrollToTop();
-        ensureBreadcrumbsVisible();
-      }, 50);
-      const t2 = setTimeout(() => {
-        forceScrollToTop();
-        ensureBreadcrumbsVisible();
-      }, 150);
-      const t3 = setTimeout(() => {
-        forceScrollToTop();
-        ensureBreadcrumbsVisible();
-      }, 350);
-      const t4 = setTimeout(() => {
-        forceScrollToTop();
-        ensureBreadcrumbsVisible();
-      }, 600);
-      return () => {
-        cancelAnimationFrame(rId);
-        clearTimeout(t1);
-        clearTimeout(t2);
-        clearTimeout(t3);
-        clearTimeout(t4);
-      };
-    }
-  }, [loading, product?.id, id]);
 
   useEffect(() => {
     // Only scroll within the horizontal thumbnail container, never scrolling the window
@@ -1310,7 +1268,7 @@ export default function ProductDetailPage() {
                   <Link
                     key={relProd.id}
                     href={prodUrl}
-                    scroll={false}
+                    scroll={true}
                     prefetch={true}
                     draggable={false}
                     onDragStart={(e) => e.preventDefault()}
