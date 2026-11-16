@@ -62,7 +62,7 @@ const DEFAULT_FAQS = [
 ];
 
 const FAQList = ({ faqs }: { faqs?: { question: string; answer: string }[] }) => {
-  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const [openIndex, setOpenIndex] = useState<number | null>(null);
   const activeFaqs = Array.isArray(faqs) && faqs.length > 0 ? faqs : DEFAULT_FAQS;
 
   return (
@@ -72,7 +72,7 @@ const FAQList = ({ faqs }: { faqs?: { question: string; answer: string }[] }) =>
         return (
           <div 
             key={index} 
-            className={`bg-white border rounded-xl overflow-hidden transition-all duration-300 ease-out ${
+            className={`bg-white border rounded-xl overflow-hidden transition-[border-color,box-shadow,background-color] duration-300 ease-out ${
               isOpen 
                 ? 'border-[#0a2766]/25 shadow-[0_4px_16px_rgba(10,39,102,0.06)] bg-[#fafcff]' 
                 : 'border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.02)] hover:border-gray-200'
@@ -100,15 +100,23 @@ const FAQList = ({ faqs }: { faqs?: { question: string; answer: string }[] }) =>
                 <ChevronDown 
                   size={20} 
                   strokeWidth={2} 
-                  className={`transition-transform duration-400 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+                  className={`transition-transform duration-350 ease-[cubic-bezier(0.25,1,0.5,1)] ${
                     isOpen ? 'rotate-180 text-[#0a2766]' : 'rotate-0 text-gray-400'
                   }`} 
                 />
               </div>
             </button>
-            <div className={`smooth-accordion-grid ${isOpen ? 'is-open' : ''}`}>
-              <div className="smooth-accordion-inner">
-                <div className="smooth-accordion-content px-4 sm:pl-[48px] sm:pr-[60px] pb-5 pt-1">
+            <div 
+              className={`grid transition-[grid-template-rows] duration-350 ease-[cubic-bezier(0.25,1,0.5,1)] will-change-[grid-template-rows] ${
+                isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+              }`}
+            >
+              <div className="overflow-hidden min-h-0">
+                <div 
+                  className={`px-4 sm:pl-[48px] sm:pr-[60px] pb-5 pt-1 transition-all duration-350 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+                    isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'
+                  }`}
+                >
                   <p className="text-[#363636] text-[15px] sm:text-[16px] leading-relaxed">
                     {faq.answer}
                   </p>
@@ -118,22 +126,6 @@ const FAQList = ({ faqs }: { faqs?: { question: string; answer: string }[] }) =>
           </div>
         );
       })}
-
-      <div className="mt-2 p-4 sm:p-5 rounded-xl bg-[#f4f7fb] border border-[#0a2766]/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div className="flex flex-col gap-0.5">
-          <span className="font-bold text-[15px] text-[#0a2766]">Need more information?</span>
-          <span className="text-[13px] text-[#363636]">Speak directly with our technical engineering team for custom requirements or pricing inquiries.</span>
-        </div>
-        <a 
-          href="https://wa.me/919971025730?text=Hello%2C%20I%20found%20your%20reference%20through%20your%20website%20and%20have%20questions%20regarding%20this%20machine."
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#0a2766] text-white text-[13px] font-bold hover:bg-[#071b4a] transition-all shrink-0 shadow-sm"
-        >
-          <Headset size={16} />
-          Speak to Expert
-        </a>
-      </div>
     </div>
   );
 };
