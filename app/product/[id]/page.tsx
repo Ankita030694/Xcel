@@ -740,39 +740,58 @@ export default function ProductDetailPage() {
       return;
     }
 
-    setMobileExpanded(id);
-
-    const container = mobileAccordionRef.current;
-    if (!container) return;
-
+    const prevOpenTab = mobileExpanded;
     const sectionOrder = ['features', 'why-us', 'industries', 'faqs'];
+    const prevIdx = prevOpenTab ? sectionOrder.indexOf(prevOpenTab) : -1;
     const targetIdx = sectionOrder.indexOf(id);
-    if (targetIdx === -1) return;
 
-    const header = document.querySelector('header');
-    const headerHeight = header ? header.offsetHeight : 124;
-    // 14px clearance just above the tab header below the sticky header
-    const headerOffset = headerHeight + 14;
-
-    const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
-    const containerDocTop = container.getBoundingClientRect().top + currentScroll;
-
-    let accumulatedTop = 0;
-    for (let i = 0; i < targetIdx; i++) {
-      const prevBtn = document.getElementById(`mobile-tab-${sectionOrder[i]}`);
-      accumulatedTop += (prevBtn?.offsetHeight || 72) + 1;
+    // Measure the previous open section's content height if it is above the target
+    let prevHeightAbove = 0;
+    if (prevOpenTab && prevIdx !== -1 && prevIdx < targetIdx) {
+      const prevContentEl = document.getElementById(`mobile-content-${prevOpenTab}`);
+      if (prevContentEl) {
+        prevHeightAbove = prevContentEl.getBoundingClientRect().height;
+      }
     }
 
-    const targetScrollY = Math.max(0, Math.round(containerDocTop + accumulatedTop - headerOffset));
+    // Set the new open tab
+    setMobileExpanded(id);
 
-    // Smoothly glide the target tab directly beneath the sticky header
-    try {
-      window.scrollTo({
-        top: targetScrollY,
-        behavior: 'smooth'
-      });
-    } catch (err) {
-      window.scrollTo(0, targetScrollY);
+    // If a section above this tab was open and is now collapsing, compensate scroll immediately
+    // so the clicked tab remains stationary on the user's screen without jumping down to Related Products
+    if (prevHeightAbove > 0) {
+      const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
+      const compensatedScroll = Math.max(0, currentScroll - prevHeightAbove);
+      try {
+        window.scrollTo({
+          top: compensatedScroll,
+          behavior: 'instant' as ScrollBehavior
+        });
+      } catch (err) {
+        window.scrollTo(0, compensatedScroll);
+      }
+    } else {
+      // Only adjust scroll if the tab button is cut off above or under the sticky header.
+      // NEVER scroll DOWN if the tab button is already visible in front of the user!
+      const btn = document.getElementById(`mobile-tab-${id}`);
+      if (btn) {
+        const header = document.querySelector('header');
+        const headerHeight = header ? header.offsetHeight : 124;
+        const rect = btn.getBoundingClientRect();
+        
+        if (rect.top < headerHeight + 10) {
+          const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
+          const targetY = Math.max(0, currentScroll + rect.top - headerHeight - 14);
+          try {
+            window.scrollTo({
+              top: targetY,
+              behavior: 'smooth'
+            });
+          } catch (err) {
+            window.scrollTo(0, targetY);
+          }
+        }
+      }
     }
   };
 
