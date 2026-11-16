@@ -803,11 +803,23 @@ export default function ProductDetailPage() {
     mobileExpandedRef.current = id;
     setMobileExpanded(id);
 
-    // Smooth-scroll directly so the page ends precisely at the top of that tab
+    // Position quickly without any smooth animation directly to the top of that tab
+    const root = typeof document !== 'undefined' ? document.documentElement : null;
+    const prevScrollBehavior = root ? root.style.scrollBehavior : '';
+    if (root) root.style.scrollBehavior = 'auto';
+
     try {
-      window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
+      window.scrollTo({ top: targetScrollY, behavior: 'auto' });
     } catch (_err) {
       window.scrollTo(0, targetScrollY);
+    }
+    if (document.documentElement) document.documentElement.scrollTop = targetScrollY;
+    if (document.body) document.body.scrollTop = targetScrollY;
+
+    if (root) {
+      setTimeout(() => {
+        root.style.scrollBehavior = prevScrollBehavior;
+      }, 50);
     }
   };
 
