@@ -63,7 +63,57 @@ const DEFAULT_FAQS = [
 
 const FAQList = ({ faqs }: { faqs?: { question: string; answer: string }[] }) => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const openIndexRef = useRef<number | null>(null);
   const activeFaqs = Array.isArray(faqs) && faqs.length > 0 ? faqs : DEFAULT_FAQS;
+
+  const handleFaqClick = (index: number) => {
+    const currentOpen = openIndexRef.current;
+
+    // If clicking the currently open question, close it
+    if (currentOpen === index) {
+      openIndexRef.current = null;
+      setOpenIndex(null);
+      return;
+    }
+
+    // If an upper question was open, collapse it immediately and compensate scroll
+    // so the clicked question stays rock-solid in place and opens smoothly downwards
+    if (currentOpen !== null && currentOpen < index) {
+      const prevContent = document.getElementById(`faq-content-${currentOpen}`);
+      const prevHeight = prevContent ? prevContent.offsetHeight : 0;
+
+      if (prevContent) {
+        prevContent.style.transition = 'none';
+        prevContent.style.gridTemplateRows = '0fr';
+        const inner = prevContent.querySelector<HTMLElement>('.overflow-hidden > div');
+        if (inner) {
+          inner.style.transition = 'none';
+          inner.style.opacity = '0';
+          inner.style.transform = 'translateY(-8px)';
+        }
+      }
+
+      if (prevHeight > 0) {
+        window.scrollBy(0, -prevHeight);
+      }
+
+      setTimeout(() => {
+        if (prevContent) {
+          prevContent.style.transition = '';
+          prevContent.style.gridTemplateRows = '';
+          const inner = prevContent.querySelector<HTMLElement>('.overflow-hidden > div');
+          if (inner) {
+            inner.style.transition = '';
+            inner.style.opacity = '';
+            inner.style.transform = '';
+          }
+        }
+      }, 50);
+    }
+
+    openIndexRef.current = index;
+    setOpenIndex(index);
+  };
 
   return (
     <div className="flex flex-col gap-3 w-full">
@@ -72,6 +122,7 @@ const FAQList = ({ faqs }: { faqs?: { question: string; answer: string }[] }) =>
         return (
           <div 
             key={index} 
+            id={`faq-item-${index}`}
             className={`bg-white border rounded-xl overflow-hidden transition-[border-color,box-shadow,background-color] duration-300 ease-out ${
               isOpen 
                 ? 'border-[#0a2766]/25 shadow-[0_4px_16px_rgba(10,39,102,0.06)] bg-[#fafcff]' 
@@ -80,7 +131,8 @@ const FAQList = ({ faqs }: { faqs?: { question: string; answer: string }[] }) =>
           >
             <button 
               type="button"
-              onClick={() => setOpenIndex(isOpen ? null : index)}
+              id={`faq-btn-${index}`}
+              onClick={() => handleFaqClick(index)}
               className="w-full flex items-center justify-between p-4 sm:p-5 text-left focus:outline-none cursor-pointer transition-colors duration-200"
               aria-expanded={isOpen}
             >
@@ -107,6 +159,7 @@ const FAQList = ({ faqs }: { faqs?: { question: string; answer: string }[] }) =>
               </div>
             </button>
             <div 
+              id={`faq-content-${index}`}
               className={`grid transition-[grid-template-rows] duration-350 ease-[cubic-bezier(0.25,1,0.5,1)] will-change-[grid-template-rows] ${
                 isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
               }`}
