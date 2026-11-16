@@ -203,6 +203,7 @@ export default function ProductDetailPage() {
   const [loadingRelated, setLoadingRelated] = useState<boolean>(true);
   const [activeSection, setActiveSection] = useState<string | null>('features');
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
+  const mobileExpandedRef = useRef<string | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   if (id !== prevId) {
@@ -218,6 +219,7 @@ export default function ProductDetailPage() {
     setActiveImageIndex(0);
     setActiveSection('features');
     setMobileExpanded(null);
+    mobileExpandedRef.current = null;
     setRelatedProducts([]);
     setLoadingRelated(true);
   }
@@ -725,47 +727,83 @@ export default function ProductDetailPage() {
 
   const handleMobileAccordionClick = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
     e.preventDefault();
-    const isOpening = mobileExpanded !== id;
+    const isOpening = mobileExpandedRef.current !== id;
 
     if (!isOpening) {
+      mobileExpandedRef.current = null;
       setMobileExpanded(null);
       return;
     }
 
-    setMobileExpanded(id);
-
-    const container = mobileAccordionRef.current;
-    if (!container) return;
-
+    const prevOpenTab = mobileExpandedRef.current;
     const sectionOrder = ['features', 'why-us', 'industries', 'faqs'];
     const targetIdx = sectionOrder.indexOf(id);
     if (targetIdx === -1) return;
 
+    const container = mobileAccordionRef.current;
+    if (!container) return;
+
+    // If a different tab is currently open, collapse it instantly via direct DOM manipulation
+    // so the page height is stable BEFORE we compute targetScrollY and start smooth scroll.
+    if (prevOpenTab && prevOpenTab !== id) {
+      const prevContent = document.getElementById(`mobile-content-${prevOpenTab}`);
+      if (prevContent) {
+        prevContent.style.transition = 'none';
+        prevContent.style.gridTemplateRows = '0fr';
+        const inner = prevContent.querySelector<HTMLElement>('.smooth-accordion-inner > *');
+        if (inner) {
+          inner.style.transition = 'none';
+          inner.style.opacity = '0';
+          inner.style.transform = 'translateY(-8px)';
+        }
+      }
+    }
+
+    // Update ref + React state
+    mobileExpandedRef.current = id;
+    setMobileExpanded(id);
+
     const header = document.querySelector('header');
     const headerHeight = header ? header.offsetHeight : 124;
-    // 14px clearance just above the tab header below the sticky header
     const headerOffset = headerHeight + 14;
 
-    const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
-    const containerDocTop = container.getBoundingClientRect().top + currentScroll;
+    // Recalculate after DOM collapse is applied (use rAF to let layout flush)
+    requestAnimationFrame(() => {
+      const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
+      const containerDocTop = container.getBoundingClientRect().top + currentScroll;
 
-    let accumulatedTop = 0;
-    for (let i = 0; i < targetIdx; i++) {
-      const prevBtn = document.getElementById(`mobile-tab-${sectionOrder[i]}`);
-      accumulatedTop += (prevBtn?.offsetHeight || 72) + 1;
-    }
+      let accumulatedTop = 0;
+      for (let i = 0; i < targetIdx; i++) {
+        const prevBtn = document.getElementById(`mobile-tab-${sectionOrder[i]}`);
+        accumulatedTop += (prevBtn?.offsetHeight || 72) + 1;
+      }
 
-    const targetScrollY = Math.max(0, Math.round(containerDocTop + accumulatedTop - headerOffset));
+      const targetScrollY = Math.max(0, Math.round(containerDocTop + accumulatedTop - headerOffset));
 
-    // Smoothly roll the page to just above the clicked tab for all 4 tabs
-    try {
-      window.scrollTo({
-        top: targetScrollY,
-        behavior: 'smooth'
-      });
-    } catch (err) {
-      window.scrollTo(0, targetScrollY);
-    }
+      // Smooth scroll to just above the clicked tab
+      try {
+        window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
+      } catch (err) {
+        window.scrollTo(0, targetScrollY);
+      }
+
+      // Restore CSS transitions after scroll starts so the new tab expands with animation
+      if (prevOpenTab && prevOpenTab !== id) {
+        const prevContent = document.getElementById(`mobile-content-${prevOpenTab}`);
+        if (prevContent) {
+          setTimeout(() => {
+            prevContent.style.transition = '';
+            prevContent.style.gridTemplateRows = '';
+            const inner = prevContent.querySelector<HTMLElement>('.smooth-accordion-inner > *');
+            if (inner) {
+              inner.style.transition = '';
+              inner.style.opacity = '';
+              inner.style.transform = '';
+            }
+          }, 50);
+        }
+      }
+    });
   };
 
   const handleDesktopTabClick = (sectionId: string) => {
