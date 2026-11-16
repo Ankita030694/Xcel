@@ -217,6 +217,7 @@ export default function ProductDetailPage() {
 
   // Drag-to-scroll trackers for carousel
   const isCarouselDraggingRef = useRef(false);
+  const [isCarouselDragging, setIsCarouselDragging] = useState(false);
   const carouselStartXRef = useRef(0);
   const carouselScrollLeftRef = useRef(0);
   const carouselHasMovedRef = useRef(false);
@@ -289,46 +290,86 @@ export default function ProductDetailPage() {
     }
   };
 
-  const handleCarouselPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (e.button !== 0 && e.pointerType === 'mouse') return;
+  const handleCarouselMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
     if (!carouselRef.current) return;
     isCarouselDraggingRef.current = true;
-    carouselStartXRef.current = e.pageX;
+    setIsCarouselDragging(true);
+    carouselStartXRef.current = e.clientX;
     carouselScrollLeftRef.current = carouselRef.current.scrollLeft;
+    carouselHasMovedRef.current = false;
+
+    // Temporarily disable CSS scroll-snap and smooth behavior during active mouse drag for 1:1 responsive tracking
+    carouselRef.current.style.scrollSnapType = 'none';
+    carouselRef.current.style.scrollBehavior = 'auto';
+  };
+
+  const handleTouchStart = () => {
     carouselHasMovedRef.current = false;
   };
 
-  const handleCarouselPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!isCarouselDraggingRef.current || !carouselRef.current) return;
-    const delta = e.pageX - carouselStartXRef.current;
-    if (Math.abs(delta) > 5) {
-      carouselHasMovedRef.current = true;
-    }
-    carouselRef.current.scrollLeft = carouselScrollLeftRef.current - delta;
+  const handleTouchMove = () => {
+    carouselHasMovedRef.current = true;
   };
 
-  const handleCarouselPointerUp = () => {
-    if (!isCarouselDraggingRef.current) return;
-    isCarouselDraggingRef.current = false;
+  const handleTouchEnd = () => {
+    if (carouselHasMovedRef.current) {
+      setTimeout(() => {
+        carouselHasMovedRef.current = false;
+      }, 60);
+    }
+  };
 
-    // Snap to nearest card boundary (2 cards on tablet, 1 card on mobile)
-    if (carouselHasMovedRef.current && carouselRef.current) {
-      const container = carouselRef.current;
-      const firstCard = container.querySelector<HTMLElement>(':scope > *');
-      if (firstCard) {
-        const cardWidth = firstCard.offsetWidth;
-        const style = window.getComputedStyle(container);
-        const gap = parseFloat(style.columnGap || style.gap || '0') || 16;
-        const isTablet = typeof window !== 'undefined' && window.innerWidth >= 640 && window.innerWidth < 1024;
-        const step = isTablet ? (cardWidth + gap) * 2 : (cardWidth + gap);
-        const nearestIndex = Math.round(container.scrollLeft / step);
-        container.scrollTo({
-          left: nearestIndex * step,
-          behavior: 'smooth'
-        });
+  useEffect(() => {
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      if (!isCarouselDraggingRef.current || !carouselRef.current) return;
+      const delta = e.clientX - carouselStartXRef.current;
+      if (Math.abs(delta) > 4) {
+        carouselHasMovedRef.current = true;
       }
-    }
-  };
+      carouselRef.current.scrollLeft = carouselScrollLeftRef.current - delta;
+    };
+
+    const handleWindowMouseUp = () => {
+      if (!isCarouselDraggingRef.current) return;
+      isCarouselDraggingRef.current = false;
+      setIsCarouselDragging(false);
+
+      if (carouselRef.current) {
+        carouselRef.current.style.scrollSnapType = '';
+        carouselRef.current.style.scrollBehavior = 'smooth';
+
+        // Snap to nearest card boundary if dragged
+        if (carouselHasMovedRef.current) {
+          const container = carouselRef.current;
+          const firstCard = container.querySelector<HTMLElement>(':scope > *');
+          if (firstCard) {
+            const cardWidth = firstCard.offsetWidth;
+            const style = window.getComputedStyle(container);
+            const gap = parseFloat(style.columnGap || style.gap || '0') || 16;
+            const isTablet = typeof window !== 'undefined' && window.innerWidth >= 640 && window.innerWidth < 1024;
+            const step = isTablet ? (cardWidth + gap) * 2 : (cardWidth + gap);
+            const nearestIndex = Math.round(container.scrollLeft / step);
+            container.scrollTo({
+              left: nearestIndex * step,
+              behavior: 'smooth'
+            });
+          }
+
+          setTimeout(() => {
+            carouselHasMovedRef.current = false;
+          }, 60);
+        }
+      }
+    };
+
+    window.addEventListener('mousemove', handleWindowMouseMove);
+    window.addEventListener('mouseup', handleWindowMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleWindowMouseMove);
+      window.removeEventListener('mouseup', handleWindowMouseUp);
+    };
+  }, []);
   
   const thumbnailContainerRef = useRef<HTMLDivElement>(null);
   const mobileAccordionRef = useRef<HTMLDivElement>(null);
@@ -1251,12 +1292,14 @@ export default function ProductDetailPage() {
             <div 
               ref={carouselRef}
               onScroll={updateScrollButtons}
-              onPointerDown={handleCarouselPointerDown}
-              onPointerMove={handleCarouselPointerMove}
-              onPointerUp={handleCarouselPointerUp}
-              onPointerCancel={handleCarouselPointerUp}
-              className="flex flex-row gap-4 sm:gap-6 overflow-x-auto scrollbar-hide py-3 w-full snap-x snap-mandatory scroll-smooth touch-pan-y cursor-grab active:cursor-grabbing"
-              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+              onMouseDown={handleCarouselMouseDown}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
+              className={`flex flex-row gap-4 sm:gap-6 overflow-x-auto scrollbar-hide py-3 w-full snap-x snap-mandatory scroll-smooth ${
+                isCarouselDragging ? 'cursor-grabbing select-none' : 'cursor-grab'
+              }`}
+              style={{ touchAction: 'pan-x pan-y', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {relatedProducts.map((relProd, pIdx) => {
                 const prodUrl = `/product/${relProd.slug || relProd.id}`;
@@ -1269,6 +1312,8 @@ export default function ProductDetailPage() {
                     href={prodUrl}
                     scroll={false}
                     prefetch={true}
+                    draggable={false}
+                    onDragStart={(e) => e.preventDefault()}
                     onClick={(e) => {
                       if (carouselHasMovedRef.current) {
                         e.preventDefault();
@@ -1308,7 +1353,8 @@ export default function ProductDetailPage() {
                       <img
                         src={prodImg}
                         alt={relProd.name}
-                        className="w-full h-full object-contain mix-blend-normal group-hover:scale-105 transition-transform duration-300"
+                        draggable={false}
+                        className="w-full h-full object-contain mix-blend-normal group-hover:scale-105 transition-transform duration-300 pointer-events-none select-none"
                         loading="lazy"
                         decoding="async"
                       />
