@@ -56,14 +56,18 @@ const FALLBACK_PRODUCTS: Record<string, any[]> = {
   ]
 };
 
-const FAQList = ({ faqs }: { faqs: { question: string; answer: string }[] }) => {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+const DEFAULT_FAQS = [
+  { question: 'What is the standard warranty on this machine?', answer: 'We provide a 1-year comprehensive warranty covering all mechanical parts, electrical components, and structural manufacturing, supported by our nationwide service network.' },
+  { question: 'Can this machine be customized?', answer: 'Yes, our engineering team can tailor specifications, heating mechanisms (steam, electric, thermic fluid), and automated cycle controls to match your exact facility requirements.' }
+];
 
-  if (!faqs || faqs.length === 0) return <p className="text-gray-500">No FAQs available for this product.</p>;
+const FAQList = ({ faqs }: { faqs?: { question: string; answer: string }[] }) => {
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+  const activeFaqs = Array.isArray(faqs) && faqs.length > 0 ? faqs : DEFAULT_FAQS;
 
   return (
     <div className="flex flex-col gap-3 w-full">
-      {faqs.map((faq, index) => {
+      {activeFaqs.map((faq, index) => {
         const isOpen = openIndex === index;
         return (
           <div 
@@ -114,6 +118,22 @@ const FAQList = ({ faqs }: { faqs: { question: string; answer: string }[] }) => 
           </div>
         );
       })}
+
+      <div className="mt-2 p-4 sm:p-5 rounded-xl bg-[#f4f7fb] border border-[#0a2766]/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="flex flex-col gap-0.5">
+          <span className="font-bold text-[15px] text-[#0a2766]">Need more information?</span>
+          <span className="text-[13px] text-[#363636]">Speak directly with our technical engineering team for custom requirements or pricing inquiries.</span>
+        </div>
+        <a 
+          href="https://wa.me/919971025730?text=Hello%2C%20I%20found%20your%20reference%20through%20your%20website%20and%20have%20questions%20regarding%20this%20machine."
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-[#0a2766] text-white text-[13px] font-bold hover:bg-[#071b4a] transition-all shrink-0 shadow-sm"
+        >
+          <Headset size={16} />
+          Speak to Expert
+        </a>
+      </div>
     </div>
   );
 };
@@ -191,7 +211,6 @@ export default function ProductDetailPage() {
   const [loadingRelated, setLoadingRelated] = useState<boolean>(true);
   const [activeSection, setActiveSection] = useState<string | null>('features');
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
-  const accordionLockTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   if (id !== prevId) {
@@ -207,10 +226,6 @@ export default function ProductDetailPage() {
     setActiveImageIndex(0);
     setActiveSection('features');
     setMobileExpanded(null);
-    if (accordionLockTimerRef.current) {
-      clearTimeout(accordionLockTimerRef.current);
-      accordionLockTimerRef.current = null;
-    }
     setRelatedProducts([]);
     setLoadingRelated(true);
   }
@@ -716,44 +731,18 @@ export default function ProductDetailPage() {
     }
   }, [activeImageIndex]);
 
-  useEffect(() => {
-    return () => {
-      if (accordionLockTimerRef.current) {
-        clearTimeout(accordionLockTimerRef.current);
-      }
-    };
-  }, []);
-
   const handleMobileAccordionClick = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
     e.preventDefault();
     const isOpening = mobileExpanded !== id;
 
-    if (accordionLockTimerRef.current) {
-      clearTimeout(accordionLockTimerRef.current);
-      accordionLockTimerRef.current = null;
-    }
-
-    const container = mobileAccordionRef.current;
-
     if (!isOpening) {
-      if (container) {
-        container.style.minHeight = '';
-      }
       setMobileExpanded(null);
       return;
     }
 
-    if (container) {
-      // Lock the accordion's current height so the page cannot shrink during the transition.
-      // This physically prevents Related Products or CTA from jumping up into the viewport.
-      const currentHeight = container.getBoundingClientRect().height;
-      if (currentHeight > 0) {
-        container.style.minHeight = `${currentHeight}px`;
-      }
-    }
-
     setMobileExpanded(id);
 
+    const container = mobileAccordionRef.current;
     if (!container) return;
 
     const sectionOrder = ['features', 'why-us', 'industries', 'faqs'];
@@ -776,7 +765,7 @@ export default function ProductDetailPage() {
 
     const targetScrollY = Math.max(0, Math.round(containerDocTop + accumulatedTop - headerOffset));
 
-    // Smoothly glide to the target tab so it lands cleanly under the header
+    // Smoothly glide the target tab directly beneath the sticky header
     try {
       window.scrollTo({
         top: targetScrollY,
@@ -785,15 +774,6 @@ export default function ProductDetailPage() {
     } catch (err) {
       window.scrollTo(0, targetScrollY);
     }
-
-    // Release the locked min-height after the 400ms transition completes cleanly
-    accordionLockTimerRef.current = setTimeout(() => {
-      const c = mobileAccordionRef.current;
-      if (c) {
-        c.style.minHeight = '';
-      }
-      accordionLockTimerRef.current = null;
-    }, 450);
   };
 
   const handleDesktopTabClick = (sectionId: string) => {
@@ -942,7 +922,7 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-white font-sans flex flex-col">
       <Header />
 
-      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-7 md:pt-14 lg:pt-8 pb-10 min-h-[80vh]">
+      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-7 md:pt-14 lg:pt-8 pb-16 sm:pb-24 lg:pb-12 min-h-[80vh]">
         
         {/* Breadcrumbs Navigation */}
         <div id="product-breadcrumbs" className="w-full max-w-full mb-4 sm:mb-6 md:mb-7 lg:mb-8 relative z-20 scroll-mt-36 md:scroll-mt-40">
@@ -1131,9 +1111,7 @@ export default function ProductDetailPage() {
         {/* Features Accordion Section (Mobile) */}
         <div 
           ref={mobileAccordionRef}
-          className={`flex lg:hidden flex-col mb-12 bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden divide-y divide-gray-100 transition-[min-height] duration-400 ease-[cubic-bezier(0.25,1,0.5,1)] ${
-            mobileExpanded ? 'min-h-[480px] sm:min-h-[540px]' : ''
-          }`}
+          className="flex lg:hidden flex-col mb-12 bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden divide-y divide-gray-100"
         >
           {sections.map(section => {
             const isSectionOpen = mobileExpanded === section.id;
