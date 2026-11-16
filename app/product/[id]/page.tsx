@@ -735,24 +735,38 @@ export default function ProductDetailPage() {
       return;
     }
 
-    // ── Step 1: Read the clicked button's position RIGHT NOW, before any DOM changes ──
-    // This gives us a stable, accurate scroll target no matter what else changes.
-    const btn = document.getElementById(`mobile-tab-${id}`);
+    const prevOpenTab = mobileExpandedRef.current;
+    const sectionOrder = ['features', 'why-us', 'industries', 'faqs'];
+    const targetIdx = sectionOrder.indexOf(id);
+    if (targetIdx === -1) return;
+
+    const container = mobileAccordionRef.current;
+    if (!container) return;
+
     const header = document.querySelector('header');
     const headerHeight = header ? header.offsetHeight : 124;
-    const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
+    const headerOffset = headerHeight + 14;
 
-    let targetScrollY = currentScroll; // fallback: stay put
-    if (btn) {
-      const rect = btn.getBoundingClientRect();
-      // Bring the clicked tab to 14px below the sticky header
-      targetScrollY = Math.max(0, Math.round(currentScroll + rect.top - headerHeight - 14));
+    const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
+    const containerDocTop = container.getBoundingClientRect().top + currentScroll;
+
+    // In the final state, any other open tab's content has height 0.
+    // So the exact document position of the target tab's header is containerDocTop + sum of heights of all preceding tab buttons.
+    let accumulatedTop = 0;
+    for (let i = 0; i < targetIdx; i++) {
+      const prevBtn = document.getElementById(`mobile-tab-${sectionOrder[i]}`);
+      accumulatedTop += (prevBtn?.offsetHeight || 72) + 1;
     }
 
-    // ── Step 2: Instantly collapse the previously open tab (no CSS transition) ──
-    const prevOpenTab = mobileExpandedRef.current;
+    const targetScrollY = Math.max(0, Math.round(containerDocTop + accumulatedTop - headerOffset));
+
+    // If another tab was open, cleanly handle the transition
     if (prevOpenTab && prevOpenTab !== id) {
+      const prevIdx = sectionOrder.indexOf(prevOpenTab);
       const prevContent = document.getElementById(`mobile-content-${prevOpenTab}`);
+      const prevHeight = prevContent ? prevContent.offsetHeight : 0;
+
+      // Collapse previously open tab DOM
       if (prevContent) {
         prevContent.style.transition = 'none';
         prevContent.style.gridTemplateRows = '0fr';
@@ -763,23 +777,15 @@ export default function ProductDetailPage() {
           inner.style.transform = 'translateY(-8px)';
         }
       }
-    }
 
-    // ── Step 3: Update state so the new tab expands with its CSS animation ──
-    mobileExpandedRef.current = id;
-    setMobileExpanded(id);
+      // If the collapsed tab was ABOVE the clicked tab, compensate scroll instantly
+      // so the clicked tab remains in the exact same spot on the screen and never drops to Related Products
+      if (prevIdx !== -1 && prevIdx < targetIdx && prevHeight > 0) {
+        window.scrollBy(0, -prevHeight);
+      }
 
-    // ── Step 4: Smooth-scroll to the pre-computed target ──
-    try {
-      window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
-    } catch (_err) {
-      window.scrollTo(0, targetScrollY);
-    }
-
-    // ── Step 5: Restore transitions on the collapsed tab after a brief moment ──
-    if (prevOpenTab && prevOpenTab !== id) {
+      // Restore transition styles for future open/close actions
       setTimeout(() => {
-        const prevContent = document.getElementById(`mobile-content-${prevOpenTab}`);
         if (prevContent) {
           prevContent.style.transition = '';
           prevContent.style.gridTemplateRows = '';
@@ -791,6 +797,17 @@ export default function ProductDetailPage() {
           }
         }
       }, 50);
+    }
+
+    // Expand the target tab
+    mobileExpandedRef.current = id;
+    setMobileExpanded(id);
+
+    // Smooth-scroll directly so the page ends precisely at the top of that tab
+    try {
+      window.scrollTo({ top: targetScrollY, behavior: 'smooth' });
+    } catch (_err) {
+      window.scrollTo(0, targetScrollY);
     }
   };
 
@@ -1129,6 +1146,7 @@ export default function ProductDetailPage() {
         {/* Features Accordion Section (Mobile) */}
         <div 
           ref={mobileAccordionRef}
+          style={{ overflowAnchor: 'none' }}
           className="flex lg:hidden flex-col mb-12 bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden divide-y divide-gray-100"
         >
           {sections.map(section => {
