@@ -96,7 +96,7 @@ const FAQList = ({ faqs }: { faqs: { question: string; answer: string }[] }) => 
                 <ChevronDown 
                   size={20} 
                   strokeWidth={2} 
-                  className={`transition-transform duration-400 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                  className={`transition-transform duration-400 ease-[cubic-bezier(0.25,1,0.5,1)] ${
                     isOpen ? 'rotate-180 text-[#0a2766]' : 'rotate-0 text-gray-400'
                   }`} 
                 />
@@ -191,8 +191,7 @@ export default function ProductDetailPage() {
   const [loadingRelated, setLoadingRelated] = useState<boolean>(true);
   const [activeSection, setActiveSection] = useState<string | null>('features');
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
-  const [instantCloseTab, setInstantCloseTab] = useState<string | null>(null);
-  const instantCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const accordionLockTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   if (id !== prevId) {
@@ -208,7 +207,10 @@ export default function ProductDetailPage() {
     setActiveImageIndex(0);
     setActiveSection('features');
     setMobileExpanded(null);
-    setInstantCloseTab(null);
+    if (accordionLockTimerRef.current) {
+      clearTimeout(accordionLockTimerRef.current);
+      accordionLockTimerRef.current = null;
+    }
     setRelatedProducts([]);
     setLoadingRelated(true);
   }
@@ -714,35 +716,44 @@ export default function ProductDetailPage() {
     }
   }, [activeImageIndex]);
 
+  useEffect(() => {
+    return () => {
+      if (accordionLockTimerRef.current) {
+        clearTimeout(accordionLockTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleMobileAccordionClick = (e: React.MouseEvent<HTMLButtonElement>, id: string) => {
     e.preventDefault();
     const isOpening = mobileExpanded !== id;
 
-    if (instantCloseTimerRef.current) {
-      clearTimeout(instantCloseTimerRef.current);
-      instantCloseTimerRef.current = null;
+    if (accordionLockTimerRef.current) {
+      clearTimeout(accordionLockTimerRef.current);
+      accordionLockTimerRef.current = null;
     }
 
+    const container = mobileAccordionRef.current;
+
     if (!isOpening) {
-      setInstantCloseTab(null);
+      if (container) {
+        container.style.minHeight = '';
+      }
       setMobileExpanded(null);
       return;
     }
 
-    const prevOpenTab = mobileExpanded;
-    if (prevOpenTab && prevOpenTab !== id) {
-      setInstantCloseTab(prevOpenTab);
-      instantCloseTimerRef.current = setTimeout(() => {
-        setInstantCloseTab(null);
-        instantCloseTimerRef.current = null;
-      }, 400);
-    } else {
-      setInstantCloseTab(null);
+    if (container) {
+      // Lock the accordion's current height so the page cannot shrink during the transition.
+      // This physically prevents Related Products or CTA from jumping up into the viewport.
+      const currentHeight = container.getBoundingClientRect().height;
+      if (currentHeight > 0) {
+        container.style.minHeight = `${currentHeight}px`;
+      }
     }
 
     setMobileExpanded(id);
 
-    const container = mobileAccordionRef.current;
     if (!container) return;
 
     const sectionOrder = ['features', 'why-us', 'industries', 'faqs'];
@@ -763,19 +774,26 @@ export default function ProductDetailPage() {
       accumulatedTop += (prevBtn?.offsetHeight || 72) + 1;
     }
 
-    const targetScrollY = Math.max(0, containerDocTop + accumulatedTop - headerOffset);
+    const targetScrollY = Math.max(0, Math.round(containerDocTop + accumulatedTop - headerOffset));
 
-    // Position immediately at the target tab to completely eliminate intermediate scrolling through Related Products
+    // Smoothly glide to the target tab so it lands cleanly under the header
     try {
       window.scrollTo({
         top: targetScrollY,
-        behavior: 'instant' as ScrollBehavior
+        behavior: 'smooth'
       });
     } catch (err) {
       window.scrollTo(0, targetScrollY);
     }
-    if (document.documentElement) document.documentElement.scrollTop = targetScrollY;
-    if (document.body) document.body.scrollTop = targetScrollY;
+
+    // Release the locked min-height after the 400ms transition completes cleanly
+    accordionLockTimerRef.current = setTimeout(() => {
+      const c = mobileAccordionRef.current;
+      if (c) {
+        c.style.minHeight = '';
+      }
+      accordionLockTimerRef.current = null;
+    }, 450);
   };
 
   const handleDesktopTabClick = (sectionId: string) => {
@@ -1113,7 +1131,9 @@ export default function ProductDetailPage() {
         {/* Features Accordion Section (Mobile) */}
         <div 
           ref={mobileAccordionRef}
-          className="flex lg:hidden flex-col mb-12 bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden divide-y divide-gray-100"
+          className={`flex lg:hidden flex-col mb-12 bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 overflow-hidden divide-y divide-gray-100 transition-[min-height] duration-400 ease-[cubic-bezier(0.25,1,0.5,1)] ${
+            mobileExpanded ? 'min-h-[480px] sm:min-h-[540px]' : ''
+          }`}
         >
           {sections.map(section => {
             const isSectionOpen = mobileExpanded === section.id;
@@ -1136,14 +1156,14 @@ export default function ProductDetailPage() {
                   <ChevronDown 
                     size={22} 
                     strokeWidth={1.5} 
-                    className={`shrink-0 ml-2 text-[#0a2766] transition-transform duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+                    className={`shrink-0 ml-2 text-[#0a2766] transition-transform duration-400 ease-[cubic-bezier(0.25,1,0.5,1)] ${
                       isSectionOpen ? 'rotate-180' : 'rotate-0'
                     }`} 
                   />
                 </button>
                 <div 
                   id={`mobile-content-${section.id}`}
-                  className={`smooth-accordion-grid ${isSectionOpen ? 'is-open' : ''} ${instantCloseTab === section.id ? 'instant-close' : ''}`}
+                  className={`smooth-accordion-grid ${isSectionOpen ? 'is-open' : ''}`}
                 >
                   <div className="smooth-accordion-inner">
                     <div className="smooth-accordion-content p-4 sm:p-5 pt-0 mt-0">
