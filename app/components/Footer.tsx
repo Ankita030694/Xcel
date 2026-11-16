@@ -542,80 +542,80 @@ export const Footer = () => {
             <div className="w-full bg-[#3b5e94] px-6 py-4 flex flex-col md:flex-row justify-between gap-8 md:gap-4 text-white">
               <div className="flex-1">
                 <h5 className="font-semibold text-[14px] mb-3 md:mb-0">
-                  <a href="/" className="hover:text-white/80 transition-colors">HOME</a>
+                  <Link href="/" className="hover:text-white/80 transition-colors">HOME</Link>
                 </h5>
               </div>
               <div className="flex-1">
                 <h5 className="font-semibold text-[14px] mb-3 md:mb-3">
-                  <a href="/about" className="hover:text-white/80 transition-colors">ABOUT US</a>
+                  <Link href="/about" className="hover:text-white/80 transition-colors">ABOUT US</Link>
                 </h5>
                 <ul className="flex flex-col gap-2 text-white/80 text-[11px]">
-                  <li><a href="/about#our-story" className="hover:text-white transition-colors">OUR STORY</a></li>
-                  <li><a href="/about#leadership" className="hover:text-white transition-colors">LEADERSHIP</a></li>
-                  <li><a href="/about#vision" className="hover:text-white transition-colors">VISION</a></li>
+                  <li><Link href="/about#our-story" className="hover:text-white transition-colors">OUR STORY</Link></li>
+                  <li><Link href="/about#leadership" className="hover:text-white transition-colors">LEADERSHIP</Link></li>
+                  <li><Link href="/about#vision" className="hover:text-white transition-colors">VISION</Link></li>
                 </ul>
               </div>
               <div className="flex-1">
                 <h5 className="font-semibold text-[14px] mb-3">
-                  <a 
+                  <Link 
                     href="/products" 
                     onClick={handleProductsHeadingClick}
                     className="hover:text-white/80 transition-colors"
                   >
                     PRODUCTS
-                  </a>
+                  </Link>
                 </h5>
                 <ul className="flex flex-col gap-2 text-white/80 text-[11px]">
-                  <li><a href="/products?category=washing#washing" onClick={(e) => handleProductCategoryClick('washing', e)} className="hover:text-white transition-colors">WASHING</a></li>
-                  <li><a href="/products?category=drying#drying" onClick={(e) => handleProductCategoryClick('drying', e)} className="hover:text-white transition-colors">DRYING</a></li>
-                  <li><a href="/products?category=apparel-processing#apparel-processing" onClick={(e) => handleProductCategoryClick('apparel-processing', e)} className="hover:text-white transition-colors">APPAREL PROCESSING</a></li>
-                  <li><a href="/products?category=dry-cleaning#dry-cleaning" onClick={(e) => handleProductCategoryClick('dry-cleaning', e)} className="hover:text-white transition-colors">DRY-CLEANING</a></li>
-                  <li><a href="/products?category=flat-work#flat-work" onClick={(e) => handleProductCategoryClick('flat-work', e)} className="hover:text-white transition-colors">FLAT-WORK</a></li>
-                  <li><a href="/products?category=steam-finishing#steam-finishing" onClick={(e) => handleProductCategoryClick('steam-finishing', e)} className="hover:text-white transition-colors">STEAM-FINISHING</a></li>
-                  <li><a href="/products?category=water-heater#water-heater" onClick={(e) => handleProductCategoryClick('water-heater', e)} className="hover:text-white transition-colors">WATER HEATER</a></li>
-                  <li><a href="/products?category=fabric-checking#fabric-checking" onClick={(e) => handleProductCategoryClick('fabric-checking', e)} className="hover:text-white transition-colors">FABRIC CHECKING</a></li>
-                  <li><a href="/products?category=other-equipment#other-equipment" onClick={(e) => handleProductCategoryClick('other-equipment', e)} className="hover:text-white transition-colors">OTHER EQUIPMENT</a></li>
-                  <li><a href="/products?category=complete-range#complete-range" onClick={(e) => handleProductCategoryClick('complete-range', e)} className="hover:text-white transition-colors">COMPLETE RANGE</a></li>
+                  <li><Link href="/products?category=washing#washing" onClick={(e) => handleProductCategoryClick('washing', e)} className="hover:text-white transition-colors">WASHING</Link></li>
+                  <li><Link href="/products?category=drying#drying" onClick={(e) => handleProductCategoryClick('drying', e)} className="hover:text-white transition-colors">DRYING</Link></li>
+                  <li><Link href="/products?category=apparel-processing#apparel-processing" onClick={(e) => handleProductCategoryClick('apparel-processing', e)} className="hover:text-white transition-colors">APPAREL PROCESSING</Link></li>
+                  <li><Link href="/products?category=dry-cleaning#dry-cleaning" onClick={(e) => handleProductCategoryClick('dry-cleaning', e)} className="hover:text-white transition-colors">DRY-CLEANING</Link></li>
+                  <li><Link href="/products?category=flat-work#flat-work" onClick={(e) => handleProductCategoryClick('flat-work', e)} className="hover:text-white transition-colors">FLAT-WORK</Link></li>
+                  <li><Link href="/products?category=steam-finishing#steam-finishing" onClick={(e) => handleProductCategoryClick('steam-finishing', e)} className="hover:text-white transition-colors">STEAM-FINISHING</Link></li>
+                  <li><Link href="/products?category=water-heater#water-heater" onClick={(e) => handleProductCategoryClick('water-heater', e)} className="hover:text-white transition-colors">WATER HEATER</Link></li>
+                  <li><Link href="/products?category=fabric-checking#fabric-checking" onClick={(e) => handleProductCategoryClick('fabric-checking', e)} className="hover:text-white transition-colors">FABRIC CHECKING</Link></li>
+                  <li><Link href="/products?category=other-equipment#other-equipment" onClick={(e) => handleProductCategoryClick('other-equipment', e)} className="hover:text-white transition-colors">OTHER EQUIPMENT</Link></li>
+                  <li><Link href="/products?category=complete-range#complete-range" onClick={(e) => handleProductCategoryClick('complete-range', e)} className="hover:text-white transition-colors">COMPLETE RANGE</Link></li>
                 </ul>
               </div>
               <div className="flex-[1.5]">
                 <h5 className="font-semibold text-[14px] mb-3">
-                  <a 
+                  <Link 
                     href="/blogs" 
                     onClick={handleBlogsHeadingClick}
                     className="hover:text-white/80 transition-colors"
                   >
                     INDUSTRY INSIGHTS
-                  </a>
+                  </Link>
                 </h5>
                 <ul className="flex flex-col gap-2 text-white/80 text-[11px]">
                   <li>
-                    <a 
+                    <Link 
                       href="/blogs" 
                       onClick={(e) => handleBlogCategoryClick('all', e)}
                       className="hover:text-white transition-colors block uppercase leading-snug"
                     >
                       ALL
-                    </a>
+                    </Link>
                   </li>
                   {blogCategories
                     .filter((cat) => cat.toLowerCase() !== 'all')
                     .map((cat) => (
                       <li key={cat}>
-                        <a 
+                        <Link 
                           href={`/blogs?category=${encodeURIComponent(cat)}`} 
                           onClick={(e) => handleBlogCategoryClick(cat, e)}
                           className="hover:text-white transition-colors block uppercase leading-snug"
                         >
                           {cat}
-                        </a>
+                        </Link>
                       </li>
                     ))}
                 </ul>
               </div>
               <div className="flex-1">
                 <h5 className="font-semibold text-[14px] mb-3">
-                  <a href="/contact" className="hover:text-white/80 transition-colors">CONTACT US</a>
+                  <Link href="/contact" className="hover:text-white/80 transition-colors">CONTACT US</Link>
                 </h5>
               </div>
             </div>

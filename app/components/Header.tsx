@@ -61,6 +61,46 @@ export const Header = () => {
     }
   };
 
+  const handleProductsClick = (e: React.MouseEvent) => {
+    setIsMobileMenuOpen(false);
+    if (typeof window === 'undefined') return;
+
+    try {
+      sessionStorage.removeItem('xcel_active_category');
+    } catch (err) {}
+    sessionStorage.setItem('xcel_scroll_to_products', 'true');
+
+    const isProductsPage = window.location.pathname === '/products' || window.location.pathname === '/products/';
+    if (isProductsPage) {
+      e.preventDefault();
+      try {
+        window.history.replaceState(window.history.state, '', '/products');
+      } catch (err) {}
+      window.dispatchEvent(new CustomEvent('scroll-to-products-heading'));
+    }
+  };
+
+  const handleProductCategoryNav = (categoryId: string, e: React.MouseEvent) => {
+    setIsMobileMenuOpen(false);
+    if (typeof window === 'undefined') return;
+
+    try {
+      sessionStorage.setItem('xcel_active_category', categoryId);
+    } catch (err) {}
+
+    const isProductsPage = window.location.pathname === '/products' || window.location.pathname === '/products/';
+    if (isProductsPage) {
+      e.preventDefault();
+      try {
+        const newUrl = `/products?category=${categoryId}#${categoryId}`;
+        window.history.replaceState(window.history.state, '', newUrl);
+      } catch (err) {}
+      window.dispatchEvent(new CustomEvent('select-product-category', { 
+        detail: { categoryId, shouldScroll: true } 
+      }));
+    }
+  };
+
   return (
     <header className="w-full sticky top-0 z-50 bg-white shadow-sm font-sans">
       {/* Top Bar Ticker */}
@@ -114,47 +154,33 @@ export const Header = () => {
                 ABOUT US
               </Link>
               <div className="group flex flex-col justify-center h-[90px]">
-                <a 
+                <Link 
                   href="/products" 
-                  onClick={(e) => {
-                    if (typeof window !== 'undefined') {
-                      try {
-                        sessionStorage.removeItem('xcel_active_category');
-                      } catch (err) {}
-                      sessionStorage.setItem('xcel_scroll_to_products', 'true');
-                      if (window.location.pathname === '/products' || window.location.pathname === '/products/') {
-                        e.preventDefault();
-                        try {
-                          window.history.replaceState(window.history.state, '', '/products');
-                        } catch (err) {}
-                        window.dispatchEvent(new CustomEvent('scroll-to-products-heading'));
-                      }
-                    }
-                  }}
+                  onClick={handleProductsClick}
                   className={`relative flex items-center cursor-pointer pb-1 border-b-[2.5px] transition-all ${
                     isActive('/products') ? 'border-[#3b5b95]' : 'border-transparent group-hover:border-[#3b5b95]'
                   }`}
                 >
                   <span className="text-[#3b5b95] font-semibold text-[14px]">PRODUCTS</span>
-                </a>
+                </Link>
                 
                 {/* Full-width Sub-nav Dropdown */}
                 <div className="absolute top-[90px] left-0 w-full bg-[#3b5b95] hidden group-hover:flex items-center justify-center py-3.5 shadow-xl transition-all duration-300 opacity-0 group-hover:opacity-100 border-t border-[#3b5b95]">
                   <div className="flex flex-row items-center justify-center gap-x-4 xl:gap-x-7 gap-y-2 text-white font-semibold text-[11px] xl:text-[12px] tracking-wider uppercase max-w-[1400px] px-4 w-full flex-wrap">
-                    <a href="/products?category=washing#washing" onClick={() => { if (typeof window !== 'undefined') { window.dispatchEvent(new CustomEvent('select-product-category', { detail: 'washing' })); } }} className="hover:text-blue-300 transition-colors">WASHING</a>
-                    <a href="/products?category=drying#drying" onClick={() => { if (typeof window !== 'undefined') { window.dispatchEvent(new CustomEvent('select-product-category', { detail: 'drying' })); } }} className="hover:text-blue-300 transition-colors">DRYING</a>
-                    <a href="/products?category=apparel-processing#apparel-processing" onClick={() => { if (typeof window !== 'undefined') { window.dispatchEvent(new CustomEvent('select-product-category', { detail: 'apparel-processing' })); } }} className="hover:text-blue-300 transition-colors">APPAREL PROCESSING</a>
-                    <a href="/products?category=dry-cleaning#dry-cleaning" onClick={() => { if (typeof window !== 'undefined') { window.dispatchEvent(new CustomEvent('select-product-category', { detail: 'dry-cleaning' })); } }} className="hover:text-blue-300 transition-colors">DRY-CLEANING</a>
-                    <a href="/products?category=flat-work#flat-work" onClick={() => { if (typeof window !== 'undefined') { window.dispatchEvent(new CustomEvent('select-product-category', { detail: 'flat-work' })); } }} className="hover:text-blue-300 transition-colors">FLAT-WORK</a>
-                    <a href="/products?category=steam-finishing#steam-finishing" onClick={() => { if (typeof window !== 'undefined') { window.dispatchEvent(new CustomEvent('select-product-category', { detail: 'steam-finishing' })); } }} className="hover:text-blue-300 transition-colors">STEAM-FINISHING</a>
-                    <a href="/products?category=water-heater#water-heater" onClick={() => { if (typeof window !== 'undefined') { window.dispatchEvent(new CustomEvent('select-product-category', { detail: 'water-heater' })); } }} className="hover:text-blue-300 transition-colors">WATER HEATER</a>
-                    <a href="/products?category=fabric-checking#fabric-checking" onClick={() => { if (typeof window !== 'undefined') { window.dispatchEvent(new CustomEvent('select-product-category', { detail: 'fabric-checking' })); } }} className="hover:text-blue-300 transition-colors">FABRIC CHECKING</a>
-                    <a href="/products?category=other-equipment#other-equipment" onClick={() => { if (typeof window !== 'undefined') { window.dispatchEvent(new CustomEvent('select-product-category', { detail: 'other-equipment' })); } }} className="hover:text-blue-300 transition-colors">OTHER EQUIPMENT</a>
-                    <a href="/products?category=complete-range#complete-range" onClick={() => { if (typeof window !== 'undefined') { window.dispatchEvent(new CustomEvent('select-product-category', { detail: 'complete-range' })); } }} className="hover:text-blue-300 transition-colors">COMPLETE RANGE</a>
+                    <Link href="/products?category=washing#washing" onClick={(e) => handleProductCategoryNav('washing', e)} className="hover:text-blue-300 transition-colors">WASHING</Link>
+                    <Link href="/products?category=drying#drying" onClick={(e) => handleProductCategoryNav('drying', e)} className="hover:text-blue-300 transition-colors">DRYING</Link>
+                    <Link href="/products?category=apparel-processing#apparel-processing" onClick={(e) => handleProductCategoryNav('apparel-processing', e)} className="hover:text-blue-300 transition-colors">APPAREL PROCESSING</Link>
+                    <Link href="/products?category=dry-cleaning#dry-cleaning" onClick={(e) => handleProductCategoryNav('dry-cleaning', e)} className="hover:text-blue-300 transition-colors">DRY-CLEANING</Link>
+                    <Link href="/products?category=flat-work#flat-work" onClick={(e) => handleProductCategoryNav('flat-work', e)} className="hover:text-blue-300 transition-colors">FLAT-WORK</Link>
+                    <Link href="/products?category=steam-finishing#steam-finishing" onClick={(e) => handleProductCategoryNav('steam-finishing', e)} className="hover:text-blue-300 transition-colors">STEAM-FINISHING</Link>
+                    <Link href="/products?category=water-heater#water-heater" onClick={(e) => handleProductCategoryNav('water-heater', e)} className="hover:text-blue-300 transition-colors">WATER HEATER</Link>
+                    <Link href="/products?category=fabric-checking#fabric-checking" onClick={(e) => handleProductCategoryNav('fabric-checking', e)} className="hover:text-blue-300 transition-colors">FABRIC CHECKING</Link>
+                    <Link href="/products?category=other-equipment#other-equipment" onClick={(e) => handleProductCategoryNav('other-equipment', e)} className="hover:text-blue-300 transition-colors">OTHER EQUIPMENT</Link>
+                    <Link href="/products?category=complete-range#complete-range" onClick={(e) => handleProductCategoryNav('complete-range', e)} className="hover:text-blue-300 transition-colors">COMPLETE RANGE</Link>
                   </div>
                 </div>
               </div>
-              <a 
+              <Link 
                 href="/blogs" 
                 onClick={handleIndustryInsightsClick}
                 className={`text-[#3b5b95] font-semibold text-[14px] pb-1 border-b-[2.5px] transition-all cursor-pointer ${
@@ -162,7 +188,7 @@ export const Header = () => {
                 }`}
               >
                 INDUSTRY INSIGHTS
-              </a>
+              </Link>
               <Link 
                 href="/contact" 
                 className={`text-[#3b5b95] font-semibold text-[14px] pb-1 border-b-[2.5px] transition-all ${
@@ -227,24 +253,9 @@ export const Header = () => {
           >
             ABOUT US
           </Link>
-          <a 
+          <Link 
             href="/products" 
-            onClick={(e) => {
-              setIsMobileMenuOpen(false);
-              if (typeof window !== 'undefined') {
-                try {
-                  sessionStorage.removeItem('xcel_active_category');
-                } catch (err) {}
-                sessionStorage.setItem('xcel_scroll_to_products', 'true');
-                if (window.location.pathname === '/products' || window.location.pathname === '/products/') {
-                  e.preventDefault();
-                  try {
-                    window.history.replaceState(window.history.state, '', '/products');
-                  } catch (err) {}
-                  window.dispatchEvent(new CustomEvent('scroll-to-products-heading'));
-                }
-              }
-            }}
+            onClick={handleProductsClick}
             className={`flex flex-col items-center pb-1 border-b-[2.5px] transition-all ${
               isActive('/products') ? 'border-[#3b5b95]' : 'border-transparent'
             }`}
@@ -252,8 +263,8 @@ export const Header = () => {
             <div className="flex items-center justify-center cursor-pointer">
               <span className="text-[#3b5b95] font-semibold text-[15px]">PRODUCTS</span>
             </div>
-          </a>
-          <a 
+          </Link>
+          <Link 
             href="/blogs" 
             onClick={handleIndustryInsightsClick} 
             className={`text-[#3b5b95] font-semibold text-[15px] pb-1 border-b-[2.5px] transition-all cursor-pointer ${
@@ -261,7 +272,7 @@ export const Header = () => {
             }`}
           >
             INDUSTRY INSIGHTS
-          </a>
+          </Link>
           <Link 
             href="/contact" 
             onClick={() => setIsMobileMenuOpen(false)} 

@@ -942,7 +942,7 @@ export default function ProductDetailPage() {
         <main className="flex-1 flex flex-col items-center justify-center">
           <h1 className="text-3xl text-[#0a2766] font-bold mb-4">Product Not Found</h1>
           <p className="text-gray-500 mb-6">The product you are looking for does not exist or has been removed.</p>
-          <a href="/products" className="text-[#32589c] hover:underline">Return to Products</a>
+          <Link href="/products" className="text-[#32589c] hover:underline">Return to Products</Link>
         </main>
         <Footer />
       </div>
