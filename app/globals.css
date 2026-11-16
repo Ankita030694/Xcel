@@ -64,14 +64,6 @@ body {
   grid-template-rows: 1fr;
 }
 
-.smooth-accordion-grid.instant-close {
-  transition: none !important;
-}
-
-.smooth-accordion-grid.instant-close .smooth-accordion-content {
-  transition: none !important;
-}
-
 .smooth-accordion-inner {
   overflow: hidden;
   min-height: 0;

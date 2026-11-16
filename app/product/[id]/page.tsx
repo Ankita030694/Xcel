@@ -211,8 +211,6 @@ export default function ProductDetailPage() {
   const [loadingRelated, setLoadingRelated] = useState<boolean>(true);
   const [activeSection, setActiveSection] = useState<string | null>('features');
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
-  const [instantCloseTab, setInstantCloseTab] = useState<string | null>(null);
-  const instantCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   if (id !== prevId) {
@@ -228,11 +226,6 @@ export default function ProductDetailPage() {
     setActiveImageIndex(0);
     setActiveSection('features');
     setMobileExpanded(null);
-    setInstantCloseTab(null);
-    if (instantCloseTimerRef.current) {
-      clearTimeout(instantCloseTimerRef.current);
-      instantCloseTimerRef.current = null;
-    }
     setRelatedProducts([]);
     setLoadingRelated(true);
   }
@@ -742,26 +735,9 @@ export default function ProductDetailPage() {
     e.preventDefault();
     const isOpening = mobileExpanded !== id;
 
-    if (instantCloseTimerRef.current) {
-      clearTimeout(instantCloseTimerRef.current);
-      instantCloseTimerRef.current = null;
-    }
-
     if (!isOpening) {
-      setInstantCloseTab(null);
       setMobileExpanded(null);
       return;
-    }
-
-    const prevOpenTab = mobileExpanded;
-    if (prevOpenTab && prevOpenTab !== id) {
-      setInstantCloseTab(prevOpenTab);
-      instantCloseTimerRef.current = setTimeout(() => {
-        setInstantCloseTab(null);
-        instantCloseTimerRef.current = null;
-      }, 50);
-    } else {
-      setInstantCloseTab(null);
     }
 
     setMobileExpanded(id);
@@ -775,6 +751,7 @@ export default function ProductDetailPage() {
 
     const header = document.querySelector('header');
     const headerHeight = header ? header.offsetHeight : 124;
+    // 14px clearance just above the tab header below the sticky header
     const headerOffset = headerHeight + 14;
 
     const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
@@ -788,33 +765,14 @@ export default function ProductDetailPage() {
 
     const targetScrollY = Math.max(0, Math.round(containerDocTop + accumulatedTop - headerOffset));
 
-    if (prevOpenTab && prevOpenTab !== id) {
-      // When switching from another open tab, position immediately at the target tab
-      // so the page never scrolls down through Related Products
-      try {
-        window.scrollTo({
-          top: targetScrollY,
-          behavior: 'instant' as ScrollBehavior
-        });
-      } catch (err) {
-        window.scrollTo(0, targetScrollY);
-      }
-    } else {
-      // Opening from closed state: only adjust if tab button is cut off under the sticky header
-      const btn = document.getElementById(`mobile-tab-${id}`);
-      if (btn) {
-        const rect = btn.getBoundingClientRect();
-        if (rect.top < headerHeight + 10) {
-          try {
-            window.scrollTo({
-              top: targetScrollY,
-              behavior: 'smooth'
-            });
-          } catch (err) {
-            window.scrollTo(0, targetScrollY);
-          }
-        }
-      }
+    // Smoothly roll the page to just above the clicked tab for all 4 tabs
+    try {
+      window.scrollTo({
+        top: targetScrollY,
+        behavior: 'smooth'
+      });
+    } catch (err) {
+      window.scrollTo(0, targetScrollY);
     }
   };
 
@@ -1183,7 +1141,7 @@ export default function ProductDetailPage() {
                 </button>
                 <div 
                   id={`mobile-content-${section.id}`}
-                  className={`smooth-accordion-grid ${isSectionOpen ? 'is-open' : ''} ${instantCloseTab === section.id ? 'instant-close' : ''}`}
+                  className={`smooth-accordion-grid ${isSectionOpen ? 'is-open' : ''}`}
                 >
                   <div className="smooth-accordion-inner">
                     <div className="smooth-accordion-content p-4 sm:p-5 pt-0 mt-0">
