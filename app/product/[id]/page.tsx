@@ -736,37 +736,10 @@ export default function ProductDetailPage() {
     }
 
     const prevOpenTab = mobileExpandedRef.current;
-    const sectionOrder = ['features', 'why-us', 'industries', 'faqs'];
-    const targetIdx = sectionOrder.indexOf(id);
-    if (targetIdx === -1) return;
 
-    const container = mobileAccordionRef.current;
-    if (!container) return;
-
-    const header = document.querySelector('header');
-    const headerHeight = header ? header.offsetHeight : 124;
-    const headerOffset = headerHeight + 14;
-
-    const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
-    const containerDocTop = container.getBoundingClientRect().top + currentScroll;
-
-    // In the final state, any other open tab's content has height 0.
-    // So the exact document position of the target tab's header is containerDocTop + sum of heights of all preceding tab buttons.
-    let accumulatedTop = 0;
-    for (let i = 0; i < targetIdx; i++) {
-      const prevBtn = document.getElementById(`mobile-tab-${sectionOrder[i]}`);
-      accumulatedTop += (prevBtn?.offsetHeight || 72) + 1;
-    }
-
-    const targetScrollY = Math.max(0, Math.round(containerDocTop + accumulatedTop - headerOffset));
-
-    // If another tab was open, cleanly handle the transition
+    // 1. Collapse previous tab DOM immediately so it doesn't push the new tab down
     if (prevOpenTab && prevOpenTab !== id) {
-      const prevIdx = sectionOrder.indexOf(prevOpenTab);
       const prevContent = document.getElementById(`mobile-content-${prevOpenTab}`);
-      const prevHeight = prevContent ? prevContent.offsetHeight : 0;
-
-      // Collapse previously open tab DOM
       if (prevContent) {
         prevContent.style.transition = 'none';
         prevContent.style.gridTemplateRows = '0fr';
@@ -777,33 +750,39 @@ export default function ProductDetailPage() {
           inner.style.transform = 'translateY(-8px)';
         }
       }
-
-      // If the collapsed tab was ABOVE the clicked tab, compensate scroll instantly
-      // so the clicked tab remains in the exact same spot on the screen and never drops to Related Products
-      if (prevIdx !== -1 && prevIdx < targetIdx && prevHeight > 0) {
-        window.scrollBy(0, -prevHeight);
-      }
-
-      // Restore transition styles for future open/close actions
-      setTimeout(() => {
-        if (prevContent) {
-          prevContent.style.transition = '';
-          prevContent.style.gridTemplateRows = '';
-          const inner = prevContent.querySelector<HTMLElement>('.smooth-accordion-inner > *');
-          if (inner) {
-            inner.style.transition = '';
-            inner.style.opacity = '';
-            inner.style.transform = '';
-          }
-        }
-      }, 50);
     }
 
-    // Expand the target tab
+    // 2. Expand newly opened tab DOM immediately so the document has full height for scrolling
+    const targetContent = document.getElementById(`mobile-content-${id}`);
+    if (targetContent) {
+      targetContent.style.transition = 'none';
+      targetContent.style.gridTemplateRows = '1fr';
+      const targetInner = targetContent.querySelector<HTMLElement>('.smooth-accordion-inner > *');
+      if (targetInner) {
+        targetInner.style.transition = 'none';
+        targetInner.style.opacity = '1';
+        targetInner.style.transform = 'translateY(0)';
+      }
+    }
+
+    // 3. Measure target button's exact position now that DOM has full height
+    const btn = document.getElementById(`mobile-tab-${id}`);
+    const header = document.querySelector('header');
+    const headerHeight = header ? header.offsetHeight : 124;
+    const headerOffset = headerHeight + 14;
+
+    const currentScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
+    let targetScrollY = currentScroll;
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      targetScrollY = Math.max(0, Math.round(currentScroll + rect.top - headerOffset));
+    }
+
+    // 4. Update React state
     mobileExpandedRef.current = id;
     setMobileExpanded(id);
 
-    // Position quickly without any smooth animation directly to the top of that tab
+    // 5. Instantly and quickly position the viewport directly at the top of that tab
     const root = typeof document !== 'undefined' ? document.documentElement : null;
     const prevScrollBehavior = root ? root.style.scrollBehavior : '';
     if (root) root.style.scrollBehavior = 'auto';
@@ -816,11 +795,51 @@ export default function ProductDetailPage() {
     if (document.documentElement) document.documentElement.scrollTop = targetScrollY;
     if (document.body) document.body.scrollTop = targetScrollY;
 
-    if (root) {
+    // 6. Re-verify position in next frame to guarantee exact placement for bottom tabs like Industries and FAQs
+    requestAnimationFrame(() => {
+      if (btn) {
+        const freshRect = btn.getBoundingClientRect();
+        const freshScroll = window.pageYOffset || window.scrollY || document.documentElement.scrollTop;
+        const finalTargetY = Math.max(0, Math.round(freshScroll + freshRect.top - headerOffset));
+        if (Math.abs(freshRect.top - headerOffset) > 2) {
+          try {
+            window.scrollTo({ top: finalTargetY, behavior: 'auto' });
+          } catch (_e) {
+            window.scrollTo(0, finalTargetY);
+          }
+          if (document.documentElement) document.documentElement.scrollTop = finalTargetY;
+          if (document.body) document.body.scrollTop = finalTargetY;
+        }
+      }
+
+      // Restore transition styles
       setTimeout(() => {
-        root.style.scrollBehavior = prevScrollBehavior;
+        if (root) root.style.scrollBehavior = prevScrollBehavior;
+        if (prevOpenTab && prevOpenTab !== id) {
+          const prevContent = document.getElementById(`mobile-content-${prevOpenTab}`);
+          if (prevContent) {
+            prevContent.style.transition = '';
+            prevContent.style.gridTemplateRows = '';
+            const inner = prevContent.querySelector<HTMLElement>('.smooth-accordion-inner > *');
+            if (inner) {
+              inner.style.transition = '';
+              inner.style.opacity = '';
+              inner.style.transform = '';
+            }
+          }
+        }
+        if (targetContent) {
+          targetContent.style.transition = '';
+          targetContent.style.gridTemplateRows = '';
+          const targetInner = targetContent.querySelector<HTMLElement>('.smooth-accordion-inner > *');
+          if (targetInner) {
+            targetInner.style.transition = '';
+            targetInner.style.opacity = '';
+            targetInner.style.transform = '';
+          }
+        }
       }, 50);
-    }
+    });
   };
 
   const handleDesktopTabClick = (sectionId: string) => {
@@ -969,7 +988,7 @@ export default function ProductDetailPage() {
     <div className="min-h-screen bg-white font-sans flex flex-col">
       <Header />
 
-      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-7 md:pt-14 lg:pt-8 pb-16 sm:pb-24 lg:pb-12 min-h-[80vh]">
+      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 pt-5 sm:pt-7 md:pt-14 lg:pt-8 pb-28 sm:pb-36 lg:pb-12 min-h-[80vh]">
         
         {/* Breadcrumbs Navigation */}
         <div id="product-breadcrumbs" className="w-full max-w-full mb-4 sm:mb-6 md:mb-7 lg:mb-8 relative z-20 scroll-mt-36 md:scroll-mt-40">
@@ -1192,7 +1211,7 @@ export default function ProductDetailPage() {
                   className={`smooth-accordion-grid ${isSectionOpen ? 'is-open' : ''}`}
                 >
                   <div className="smooth-accordion-inner">
-                    <div className="smooth-accordion-content p-4 sm:p-5 pt-0 mt-0">
+                    <div className="smooth-accordion-content p-4 sm:p-5 pt-0 mt-0 min-h-[45vh] sm:min-h-[50vh]">
                       <div className="pt-4">
                         {section.content}
                       </div>
