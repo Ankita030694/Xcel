@@ -191,6 +191,8 @@ export default function ProductDetailPage() {
   const [loadingRelated, setLoadingRelated] = useState<boolean>(true);
   const [activeSection, setActiveSection] = useState<string | null>('features');
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
+  const [instantCloseTab, setInstantCloseTab] = useState<string | null>(null);
+  const instantCloseTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   if (id !== prevId) {
@@ -206,6 +208,7 @@ export default function ProductDetailPage() {
     setActiveImageIndex(0);
     setActiveSection('features');
     setMobileExpanded(null);
+    setInstantCloseTab(null);
     setRelatedProducts([]);
     setLoadingRelated(true);
   }
@@ -715,9 +718,26 @@ export default function ProductDetailPage() {
     e.preventDefault();
     const isOpening = mobileExpanded !== id;
 
+    if (instantCloseTimerRef.current) {
+      clearTimeout(instantCloseTimerRef.current);
+      instantCloseTimerRef.current = null;
+    }
+
     if (!isOpening) {
+      setInstantCloseTab(null);
       setMobileExpanded(null);
       return;
+    }
+
+    const prevOpenTab = mobileExpanded;
+    if (prevOpenTab && prevOpenTab !== id) {
+      setInstantCloseTab(prevOpenTab);
+      instantCloseTimerRef.current = setTimeout(() => {
+        setInstantCloseTab(null);
+        instantCloseTimerRef.current = null;
+      }, 400);
+    } else {
+      setInstantCloseTab(null);
     }
 
     setMobileExpanded(id);
@@ -745,10 +765,17 @@ export default function ProductDetailPage() {
 
     const targetScrollY = Math.max(0, containerDocTop + accumulatedTop - headerOffset);
 
-    window.scrollTo({
-      top: targetScrollY,
-      behavior: 'smooth'
-    });
+    // Position immediately at the target tab to completely eliminate intermediate scrolling through Related Products
+    try {
+      window.scrollTo({
+        top: targetScrollY,
+        behavior: 'instant' as ScrollBehavior
+      });
+    } catch (err) {
+      window.scrollTo(0, targetScrollY);
+    }
+    if (document.documentElement) document.documentElement.scrollTop = targetScrollY;
+    if (document.body) document.body.scrollTop = targetScrollY;
   };
 
   const handleDesktopTabClick = (sectionId: string) => {
@@ -1116,7 +1143,7 @@ export default function ProductDetailPage() {
                 </button>
                 <div 
                   id={`mobile-content-${section.id}`}
-                  className={`smooth-accordion-grid ${isSectionOpen ? 'is-open' : ''}`}
+                  className={`smooth-accordion-grid ${isSectionOpen ? 'is-open' : ''} ${instantCloseTab === section.id ? 'instant-close' : ''}`}
                 >
                   <div className="smooth-accordion-inner">
                     <div className="smooth-accordion-content p-4 sm:p-5 pt-0 mt-0">

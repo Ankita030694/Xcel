@@ -64,6 +64,10 @@ body {
   grid-template-rows: 1fr;
 }
 
+.smooth-accordion-grid.instant-close {
+  transition: none !important;
+}
+
 .smooth-accordion-inner {
   overflow: hidden;
   min-height: 0;
@@ -79,6 +83,10 @@ body {
 .smooth-accordion-grid.is-open .smooth-accordion-content {
   opacity: 1;
   transform: translateY(0);
+}
+
+.smooth-accordion-grid.instant-close .smooth-accordion-content {
+  transition: none !important;
 }
 
 @keyframes tabFadeIn {
