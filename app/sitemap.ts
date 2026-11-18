@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 import { BLOG_ARTICLES } from '@/data/blogs';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://xcelstiro.com';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.xcelstiro.com';
   const lastModified = new Date();
 
   // Core Static Routes

@@ -22,6 +22,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.xcelstiro.com'),
   title: "XCEL - Industrial Laundry Equipment",
   description: "XCEL has been manufacturing high-performance industrial and commercial laundry equipment since 1994.",
   icons: {
