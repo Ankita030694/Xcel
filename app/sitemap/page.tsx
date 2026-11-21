@@ -27,6 +27,15 @@ import { BLOG_ARTICLES } from "@/data/blogs";
 export const metadata: Metadata = {
   title: "Sitemap | Xcel Stiro Private Limited",
   description: "Complete visual sitemap and index of all pages, laundry equipment categories, technical articles, and legal documentation of Xcel Stiro.",
+  alternates: {
+    canonical: "https://www.xcelstiro.com/sitemap",
+  },
+  openGraph: {
+    title: "Sitemap | Xcel Stiro Private Limited",
+    description: "Complete visual sitemap and index of all pages, laundry equipment categories, technical articles, and legal documentation of Xcel Stiro.",
+    url: "https://www.xcelstiro.com/sitemap",
+    type: "website",
+  },
 };
 
 const PRODUCT_CATEGORIES = [
@@ -142,7 +151,7 @@ export default function SitemapPage() {
                 </Link>
               </li>
               <li>
-                <Link href="/insights" className="group flex items-center justify-between text-[14px] text-gray-700 hover:text-[#0a2766] font-medium py-1">
+                <Link href="/blogs" className="group flex items-center justify-between text-[14px] text-gray-700 hover:text-[#0a2766] font-medium py-1">
                   <span>Industry Insights</span>
                   <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 group-hover:text-[#3b5b95] transition-all" />
                 </Link>

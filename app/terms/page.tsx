@@ -24,6 +24,15 @@ import { Footer } from "@/app/components/Footer";
 export const metadata: Metadata = {
   title: "Terms of Service | Xcel Stiro Private Limited",
   description: "Terms and conditions governing the use of Xcel Stiro Private Limited's website, products, and services.",
+  alternates: {
+    canonical: "https://www.xcelstiro.com/terms",
+  },
+  openGraph: {
+    title: "Terms of Service | Xcel Stiro Private Limited",
+    description: "Terms and conditions governing the use of Xcel Stiro Private Limited's website, products, and services.",
+    url: "https://www.xcelstiro.com/terms",
+    type: "website",
+  },
 };
 
 const SECTIONS = [

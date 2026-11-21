@@ -1,4 +1,10 @@
-import BlogSlugPage, { generateMetadata, generateStaticParams } from '@/app/blogs/[slug]/page';
+import { permanentRedirect } from "next/navigation";
 
-export { generateMetadata, generateStaticParams };
-export default BlogSlugPage;
+interface PageProps {
+  params: Promise<{ slug: string }>;
+}
+
+export default async function BlogSlugRedirectPage({ params }: PageProps) {
+  const { slug } = await params;
+  permanentRedirect(`/blogs/${slug}`);
+}

@@ -1,4 +1,5 @@
-import BlogsPage, { metadata } from '@/app/blogs/page';
+import { permanentRedirect } from "next/navigation";
 
-export { metadata };
-export default BlogsPage;
+export default function BlogRedirectPage() {
+  permanentRedirect("/blogs");
+}

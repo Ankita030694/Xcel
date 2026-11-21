@@ -1,7 +1,12 @@
 import React from "react";
 import type { Metadata } from "next";
-import { BLOG_ARTICLES, getArticleBySlug, getRelatedArticles } from "@/data/blogs";
+import { notFound, permanentRedirect } from "next/navigation";
+import { BLOG_ARTICLES } from "@/data/blogs";
+import { SITE_URL, getServerBlogBySlug } from "@/lib/firestore-server";
 import BlogDetailClient from "./BlogDetailClient";
+
+export const revalidate = 300;
+export const dynamicParams = true;
 
 interface PageProps {
   params: Promise<{
@@ -10,40 +15,49 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  const params: { slug: string }[] = [];
-  BLOG_ARTICLES.forEach((article) => {
-    params.push({ slug: article.slug });
-    if (article.aliases) {
-      article.aliases.forEach((alias) => {
-        params.push({ slug: alias });
-      });
-    }
-  });
-  return params;
+  return BLOG_ARTICLES.map((article) => ({
+    slug: article.slug,
+  }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const article = getArticleBySlug(slug);
+  const resolved = await getServerBlogBySlug(slug);
 
-  if (!article) {
+  if (!resolved) {
     return {
-      title: "Industry Insights | XCEL Technical Journal",
+      title: "Article Not Found | XCEL Stiro",
+      robots: {
+        index: false,
+        follow: false,
+      },
     };
   }
+
+  const { article, canonicalSlug } = resolved;
+  const canonicalUrl = `${SITE_URL}/blogs/${canonicalSlug}`;
 
   const keywordsList: string[] = [
     article.focusKeyword || article.category,
     ...(article.secondaryKeywords || []),
   ].filter((k): k is string => Boolean(k));
 
+  const rawTitle = (article.metaTitle || article.title || "")
+    .replace(/\s*\|\s*XCEL(\s+STIRO)?$/i, "")
+    .trim();
+
   return {
-    title: `${article.title} | XCEL`,
+    title: `${rawTitle} | XCEL Stiro`,
     description: article.metaDescription || article.lead,
     keywords: keywordsList,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title: article.title,
       description: article.metaDescription || article.lead,
+      url: canonicalUrl,
+      type: "article",
       images: [
         {
           url: article.bannerSrc || article.imageSrc,
@@ -58,14 +72,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BlogSlugPage({ params }: PageProps) {
   const { slug } = await params;
-  const article = getArticleBySlug(slug) || null;
-  const relatedArticles = article ? getRelatedArticles(article.slug, 3) : [];
+  const resolved = await getServerBlogBySlug(slug);
+
+  if (!resolved) {
+    notFound();
+  }
+
+  if (resolved.isAlias || slug !== resolved.canonicalSlug) {
+    permanentRedirect(`/blogs/${resolved.canonicalSlug}`);
+  }
 
   return (
     <BlogDetailClient
-      slug={slug}
-      initialArticle={article}
-      initialRelated={relatedArticles}
+      slug={resolved.canonicalSlug}
+      initialArticle={resolved.article}
+      initialRelated={resolved.relatedArticles}
     />
   );
 }

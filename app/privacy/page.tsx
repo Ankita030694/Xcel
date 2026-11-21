@@ -23,6 +23,15 @@ import { Footer } from "@/app/components/Footer";
 export const metadata: Metadata = {
   title: "Privacy Policy | Xcel Stiro Private Limited",
   description: "Learn how Xcel Stiro Private Limited collects, uses, and protects your personal information.",
+  alternates: {
+    canonical: "https://www.xcelstiro.com/privacy",
+  },
+  openGraph: {
+    title: "Privacy Policy | Xcel Stiro Private Limited",
+    description: "Learn how Xcel Stiro Private Limited collects, uses, and protects your personal information.",
+    url: "https://www.xcelstiro.com/privacy",
+    type: "website",
+  },
 };
 
 const SECTIONS = [

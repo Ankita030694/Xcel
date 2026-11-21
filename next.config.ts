@@ -1,7 +1,16 @@
 import type { NextConfig } from "next";
+import { BLOG_ARTICLES } from "./data/blogs";
+
+const blogAliasRedirects = BLOG_ARTICLES.flatMap((article) =>
+  (article.aliases || []).map((alias) => ({
+    source: `/blogs/${alias}`,
+    destination: `/blogs/${article.slug}`,
+    permanent: true,
+  }))
+);
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['lucide-react'],
+  transpilePackages: ["lucide-react"],
   compress: true,
   poweredByHeader: false,
   reactStrictMode: true,
@@ -25,10 +34,63 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/blog",
+        destination: "/blogs",
+        permanent: true,
+      },
+      {
+        source: "/blog/:slug",
+        destination: "/blogs/:slug",
+        permanent: true,
+      },
+      {
+        source: "/insights",
+        destination: "/blogs",
+        permanent: true,
+      },
+      {
+        source: "/privacy-policy",
+        destination: "/privacy",
+        permanent: true,
+      },
+      {
+        source: "/terms-of-service",
+        destination: "/terms",
+        permanent: true,
+      },
+      {
+        source: "/product/fallback-:id",
+        destination: "/products",
+        permanent: true,
+      },
+      ...blogAliasRedirects,
+    ];
+  },
   async headers() {
     return [
       {
-        source: "/_next/static/:path*",
+        source: "/admin/:path*",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow",
+          },
+        ],
+      },
+      {
+        source: "/adminloginn",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow",
+          },
+        ],
+      },
+      {
+        source: "/test-storage",
         headers: [
           {
             key: "X-Robots-Tag",

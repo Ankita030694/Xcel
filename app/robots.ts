@@ -1,22 +1,21 @@
-import type { MetadataRoute } from 'next';
+import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/lib/firestore-server";
 
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.xcelstiro.com';
-
   return {
     rules: [
       {
-        userAgent: '*',
-        allow: [
-          '/',
-          '/_next/static/',
-        ],
+        userAgent: "*",
+        allow: "/",
         disallow: [
-          '/admin/',
-          '/api/',
+          "/admin/",
+          "/adminloginn",
+          "/api/",
+          "/test-storage",
         ],
       },
     ],
-    sitemap: `${baseUrl}/sitemap.xml`,
+    sitemap: `${SITE_URL}/sitemap.xml`,
+    host: SITE_URL,
   };
 }

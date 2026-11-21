@@ -88,7 +88,6 @@ export default function RootLayout({
           }}
         />
         <link rel="icon" href="/xcel.svg" type="image/svg+xml" sizes="any" />
-        <meta name="google-site-verification" content="S-8THDoykDkfjUIPVfm3w304CwQp1An5DjpPgA29YU8" />
         <link rel="shortcut icon" href="/xcel.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/xcel.svg" />
         <link rel="preconnect" href="https://firebasestorage.googleapis.com" crossOrigin="anonymous" />
