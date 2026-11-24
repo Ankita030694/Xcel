@@ -92,7 +92,7 @@ export const Header = () => {
     if (isProductsPage) {
       e.preventDefault();
       try {
-        const newUrl = `/products?category=${categoryId}#${categoryId}`;
+        const newUrl = `/products#${categoryId}`;
         window.history.replaceState(window.history.state, '', newUrl);
       } catch (err) {}
       window.dispatchEvent(new CustomEvent('select-product-category', { 
@@ -167,16 +167,16 @@ export const Header = () => {
                 {/* Full-width Sub-nav Dropdown */}
                 <div className="absolute top-[90px] left-0 w-full bg-[#3b5b95] hidden group-hover:flex items-center justify-center py-3.5 shadow-xl transition-all duration-300 opacity-0 group-hover:opacity-100 border-t border-[#3b5b95]">
                   <div className="flex flex-row items-center justify-center gap-x-4 xl:gap-x-7 gap-y-2 text-white font-semibold text-[11px] xl:text-[12px] tracking-wider uppercase max-w-[1400px] px-4 w-full flex-wrap">
-                    <Link href="/products?category=washing#washing" onClick={(e) => handleProductCategoryNav('washing', e)} className="hover:text-blue-300 transition-colors">WASHING</Link>
-                    <Link href="/products?category=drying#drying" onClick={(e) => handleProductCategoryNav('drying', e)} className="hover:text-blue-300 transition-colors">DRYING</Link>
-                    <Link href="/products?category=apparel-processing#apparel-processing" onClick={(e) => handleProductCategoryNav('apparel-processing', e)} className="hover:text-blue-300 transition-colors">APPAREL PROCESSING</Link>
-                    <Link href="/products?category=dry-cleaning#dry-cleaning" onClick={(e) => handleProductCategoryNav('dry-cleaning', e)} className="hover:text-blue-300 transition-colors">DRY-CLEANING</Link>
-                    <Link href="/products?category=flat-work#flat-work" onClick={(e) => handleProductCategoryNav('flat-work', e)} className="hover:text-blue-300 transition-colors">FLAT-WORK</Link>
-                    <Link href="/products?category=steam-finishing#steam-finishing" onClick={(e) => handleProductCategoryNav('steam-finishing', e)} className="hover:text-blue-300 transition-colors">STEAM-FINISHING</Link>
-                    <Link href="/products?category=water-heater#water-heater" onClick={(e) => handleProductCategoryNav('water-heater', e)} className="hover:text-blue-300 transition-colors">WATER HEATER</Link>
-                    <Link href="/products?category=fabric-checking#fabric-checking" onClick={(e) => handleProductCategoryNav('fabric-checking', e)} className="hover:text-blue-300 transition-colors">FABRIC CHECKING</Link>
-                    <Link href="/products?category=other-equipment#other-equipment" onClick={(e) => handleProductCategoryNav('other-equipment', e)} className="hover:text-blue-300 transition-colors">OTHER EQUIPMENT</Link>
-                    <Link href="/products?category=complete-range#complete-range" onClick={(e) => handleProductCategoryNav('complete-range', e)} className="hover:text-blue-300 transition-colors">COMPLETE RANGE</Link>
+                    <Link href="/products#washing" onClick={(e) => handleProductCategoryNav('washing', e)} className="hover:text-blue-300 transition-colors">WASHING</Link>
+                    <Link href="/products#drying" onClick={(e) => handleProductCategoryNav('drying', e)} className="hover:text-blue-300 transition-colors">DRYING</Link>
+                    <Link href="/products#apparel-processing" onClick={(e) => handleProductCategoryNav('apparel-processing', e)} className="hover:text-blue-300 transition-colors">APPAREL PROCESSING</Link>
+                    <Link href="/products#dry-cleaning" onClick={(e) => handleProductCategoryNav('dry-cleaning', e)} className="hover:text-blue-300 transition-colors">DRY-CLEANING</Link>
+                    <Link href="/products#flat-work" onClick={(e) => handleProductCategoryNav('flat-work', e)} className="hover:text-blue-300 transition-colors">FLAT-WORK</Link>
+                    <Link href="/products#steam-finishing" onClick={(e) => handleProductCategoryNav('steam-finishing', e)} className="hover:text-blue-300 transition-colors">STEAM-FINISHING</Link>
+                    <Link href="/products#water-heater" onClick={(e) => handleProductCategoryNav('water-heater', e)} className="hover:text-blue-300 transition-colors">WATER HEATER</Link>
+                    <Link href="/products#fabric-checking" onClick={(e) => handleProductCategoryNav('fabric-checking', e)} className="hover:text-blue-300 transition-colors">FABRIC CHECKING</Link>
+                    <Link href="/products#other-equipment" onClick={(e) => handleProductCategoryNav('other-equipment', e)} className="hover:text-blue-300 transition-colors">OTHER EQUIPMENT</Link>
+                    <Link href="/products#complete-range" onClick={(e) => handleProductCategoryNav('complete-range', e)} className="hover:text-blue-300 transition-colors">COMPLETE RANGE</Link>
                   </div>
                 </div>
               </div>

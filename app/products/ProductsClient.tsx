@@ -23,35 +23,35 @@ const categories = [
 
 const FALLBACK_PRODUCTS: Record<string, any[]> = {
   'washing': [
-    { id: 'fallback-1', name: 'Washer Extractors', imageUrl: '/prod.final/Washing 1.png', categoryId: 'washing', subheading: 'Built for heavy loads. Engineered for excellence.' },
-    { id: 'fallback-2', name: 'Front Loading Washing Machines', imageUrl: '/prod.png/Washing Front 60 kg Left View 1.png', categoryId: 'washing', subheading: 'Built for heavy loads. Engineered for excellence.' }
+    { id: 'fallback-1', slug: 'industrial-washer-extractors', name: 'Washer Extractors', imageUrl: '/prod.final/Washing 1.png', categoryId: 'washing', subheading: 'Built for heavy loads. Engineered for excellence.' },
+    { id: 'fallback-2', slug: 'front-loading-washing-machines', name: 'Front Loading Washing Machines', imageUrl: '/prod.png/Washing Front 60 kg Left View 1.png', categoryId: 'washing', subheading: 'Built for heavy loads. Engineered for excellence.' }
   ],
   'drying': [
-    { id: 'fallback-3', name: 'Drying Tumblers', imageUrl: '/prod.final/Drying 1.png', categoryId: 'drying', subheading: 'Built for heavy loads. Engineered for excellence.' }
+    { id: 'fallback-3', slug: 'drying-tumblers', name: 'Drying Tumblers', imageUrl: '/prod.final/Drying 1.png', categoryId: 'drying', subheading: 'Built for heavy loads. Engineered for excellence.' }
   ],
   'apparel-processing': [
-    { id: 'fallback-4', name: 'Apparel Washing Machines', imageUrl: '/prod.final/Apparel Washing 1.png', categoryId: 'apparel-processing', subheading: 'Built for heavy loads. Engineered for excellence.' }
+    { id: 'fallback-4', slug: 'apparel-processing-machines', name: 'Apparel Washing Machines', imageUrl: '/prod.final/Apparel Washing 1.png', categoryId: 'apparel-processing', subheading: 'Built for heavy loads. Engineered for excellence.' }
   ],
   'dry-cleaning': [
-    { id: 'fallback-5', name: 'Perc Dry Cleaning Machines', imageUrl: '/prod.final/Dry-Cleaning 1.png', categoryId: 'dry-cleaning', subheading: 'Built for heavy loads. Engineered for excellence.' }
+    { id: 'fallback-5', slug: 'perc-dryclean-machine', name: 'Perc Dry Cleaning Machines', imageUrl: '/prod.final/Dry-Cleaning 1.png', categoryId: 'dry-cleaning', subheading: 'Built for heavy loads. Engineered for excellence.' }
   ],
   'flat-work': [
-    { id: 'fallback-6', name: 'Flat Work Ironers', imageUrl: '/prod.final/Flat-Work 1.png', categoryId: 'flat-work', subheading: 'Built for heavy loads. Engineered for excellence.' }
+    { id: 'fallback-6', slug: 'flatwork-ironers', name: 'Flat Work Ironers', imageUrl: '/prod.final/Flat-Work 1.png', categoryId: 'flat-work', subheading: 'Built for heavy loads. Engineered for excellence.' }
   ],
   'steam-finishing': [
-    { id: 'fallback-7', name: 'Steam Finishing Equipment', imageUrl: '/prod.final/Steam-Finishing 1.png', categoryId: 'steam-finishing', subheading: 'Built for heavy loads. Engineered for excellence.' }
+    { id: 'fallback-7', slug: 'vacuum-ironing-table', name: 'Steam Finishing Equipment', imageUrl: '/prod.final/Steam-Finishing 1.png', categoryId: 'steam-finishing', subheading: 'Built for heavy loads. Engineered for excellence.' }
   ],
   'water-heater': [
-    { id: 'fallback-8', name: 'Industrial Water Heaters', imageUrl: '/prod.final/Water Heater 1.png', categoryId: 'water-heater', subheading: 'Built for heavy loads. Engineered for excellence.' }
+    { id: 'fallback-8', slug: 'electric-water-heater', name: 'Industrial Water Heaters', imageUrl: '/prod.final/Water Heater 1.png', categoryId: 'water-heater', subheading: 'Built for heavy loads. Engineered for excellence.' }
   ],
   'fabric-checking': [
-    { id: 'fallback-9', name: 'Fabric Checking Machines', imageUrl: '/prod.final/Fabric Checking 1.png', categoryId: 'fabric-checking', subheading: 'Built for heavy loads. Engineered for excellence.' }
+    { id: 'fallback-9', slug: 'fabric-inspection-machine', name: 'Fabric Checking Machines', imageUrl: '/prod.final/Fabric Checking 1.png', categoryId: 'fabric-checking', subheading: 'Built for heavy loads. Engineered for excellence.' }
   ],
   'other-equipment': [
-    { id: 'fallback-10', name: 'Ancillary Equipment', imageUrl: '/prod.final/Other Equipment 1.png', categoryId: 'other-equipment', subheading: 'Built for heavy loads. Engineered for excellence.' }
+    { id: 'fallback-10', slug: 'stain-removing-machine', name: 'Ancillary Equipment', imageUrl: '/prod.final/Other Equipment 1.png', categoryId: 'other-equipment', subheading: 'Built for heavy loads. Engineered for excellence.' }
   ],
   'complete-range': [
-    { id: 'fallback-11', name: 'Complete Laundry Setup', imageUrl: '/prod.final/Complete Range 1.png', categoryId: 'complete-range', subheading: 'Built for heavy loads. Engineered for excellence.' }
+    { id: 'fallback-11', slug: 'industrial-washer-extractors', name: 'Complete Laundry Setup', imageUrl: '/prod.final/Complete Range 1.png', categoryId: 'complete-range', subheading: 'Built for heavy loads. Engineered for excellence.' }
   ]
 };
 
@@ -77,7 +77,7 @@ function CategoryParamSync({
     const categoryParam = searchParams?.get('category') || '';
     const hash = typeof window !== 'undefined' && window.location.hash ? window.location.hash.substring(1) : '';
     const storedCategory = typeof window !== 'undefined' ? sessionStorage.getItem('xcel_active_category') || '' : '';
-    const targetId = categoryParam || hash || storedCategory;
+    const targetId = hash || categoryParam || storedCategory;
 
     if (targetId && categories.some(c => c.id === targetId)) {
       onCategoryParam(targetId);
@@ -387,7 +387,7 @@ function ProductsContent({
       if (typeof window !== 'undefined') {
         try {
           sessionStorage.setItem('xcel_active_category', targetId);
-          const newUrl = `/products?category=${targetId}#${targetId}`;
+          const newUrl = `/products#${targetId}`;
           window.history.replaceState(window.history.state, '', newUrl);
         } catch (e) {}
 

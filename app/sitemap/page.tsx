@@ -22,7 +22,14 @@ import {
 } from "@/app/components/icons";
 import { Header } from "@/app/components/Header";
 import { Footer } from "@/app/components/Footer";
-import { BLOG_ARTICLES } from "@/data/blogs";
+import {
+  getServerProducts,
+  getServerBlogs,
+  getCanonicalProductSlug,
+  formatProductSeoName,
+} from "@/lib/firestore-server";
+
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Sitemap | Xcel Stiro Private Limited",
@@ -39,19 +46,23 @@ export const metadata: Metadata = {
 };
 
 const PRODUCT_CATEGORIES = [
-  { name: "Washing Equipment", href: "/products?category=washing#washing", desc: "Industrial washer extractors and commercial washing machines for laundries." },
-  { name: "Drying Solutions", href: "/products?category=drying#drying", desc: "High-performance drying tumbler and hydro extractor machines for laundries." },
-  { name: "Apparel Processing", href: "/products?category=apparel-processing#apparel-processing", desc: "Specialised garment processing machines for washing, softening and drying operations." },
-  { name: "Dry-Cleaning Machinery", href: "/products?category=dry-cleaning#dry-cleaning", desc: "Advanced dry-cleaning machines with integrated distillation and solvent recovery modules." },
-  { name: "Flat-Work Ironers", href: "/products?category=flat-work#flat-work", desc: "High Speed flatwork ironers for professional flat linen ironing applications." },
-  { name: "Steam-Finishing Systems", href: "/products?category=steam-finishing#steam-finishing", desc: "Professional garment ironing equipment, including utility presses, form finishers and vacuum tables." },
-  { name: "Industrial Water Heaters", href: "/products?category=water-heater#water-heater", desc: "Continuous hot water heating systems for commercial washing, ironing machines and large-scale laundry operations." },
-  { name: "Fabric Checking Machine", href: "/products?category=fabric-checking#fabric-checking", desc: "Fabric inspection and measuring machines for quality control in garment and apparel manufacturing units." },
-  { name: "Other Ancillary Equipment", href: "/products?category=other-equipment#other-equipment", desc: "Essential laundry support equipment, including stain removal machines, SS trolleys and thread sucking machine." },
-  { name: "Complete Equipment Range", href: "/products?category=complete-range#complete-range", desc: "Explore the complete XCEL portfolio of industrial and commercial laundry machines." },
+  { name: "Washing Equipment", href: "/products#washing", desc: "Industrial washer extractors and commercial washing machines for laundries." },
+  { name: "Drying Solutions", href: "/products#drying", desc: "High-performance drying tumbler and hydro extractor machines for laundries." },
+  { name: "Apparel Processing", href: "/products#apparel-processing", desc: "Specialised garment processing machines for washing, softening and drying operations." },
+  { name: "Dry-Cleaning Machinery", href: "/products#dry-cleaning", desc: "Advanced dry-cleaning machines with integrated distillation and solvent recovery modules." },
+  { name: "Flat-Work Ironers", href: "/products#flat-work", desc: "High Speed flatwork ironers for professional flat linen ironing applications." },
+  { name: "Steam-Finishing Systems", href: "/products#steam-finishing", desc: "Professional garment ironing equipment, including utility presses, form finishers and vacuum tables." },
+  { name: "Industrial Water Heaters", href: "/products#water-heater", desc: "Continuous hot water heating systems for commercial washing, ironing machines and large-scale laundry operations." },
+  { name: "Fabric Checking Machine", href: "/products#fabric-checking", desc: "Fabric inspection and measuring machines for quality control in garment and apparel manufacturing units." },
+  { name: "Other Ancillary Equipment", href: "/products#other-equipment", desc: "Essential laundry support equipment, including stain removal machines, SS trolleys and thread sucking machine." },
+  { name: "Complete Equipment Range", href: "/products#complete-range", desc: "Explore the complete XCEL portfolio of industrial and commercial laundry machines." },
 ];
 
-export default function SitemapPage() {
+export default async function SitemapPage() {
+  const [products, blogs] = await Promise.all([
+    getServerProducts(300),
+    getServerBlogs(300),
+  ]);
   return (
     <div className="min-h-screen flex flex-col bg-white text-[#172228] font-sans">
       <Header />
@@ -98,7 +109,7 @@ export default function SitemapPage() {
               <a 
                 href="/sitemap.xml" 
                 target="_blank" 
-                rel="noopener noreferrer"
+                rel="noopener noreferrer nofollow"
                 className="inline-flex items-center gap-1 text-[#0a2766] font-bold hover:underline"
               >
                 <FileCode2 className="w-3.5 h-3.5" />
@@ -206,7 +217,7 @@ export default function SitemapPage() {
                 </Link>
               </li>
               <li>
-                <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer" className="group flex items-start justify-between text-[14px] text-gray-700 hover:text-[#0a2766] font-medium py-1">
+                <a href="/sitemap.xml" target="_blank" rel="noopener noreferrer nofollow" className="group flex items-start justify-between text-[14px] text-gray-700 hover:text-[#0a2766] font-medium py-1">
                   <div>
                     <span className="block flex items-center gap-1.5">
                       XML Sitemap 
@@ -286,6 +297,31 @@ export default function SitemapPage() {
                 </Link>
               ))}
             </div>
+
+            {products.length > 0 && (
+              <div className="mt-8 pt-6 border-t border-gray-100">
+                <h3 className="text-sm font-bold text-[#0a2766] uppercase tracking-wider mb-4">
+                  All Equipment Models ({products.length})
+                </h3>
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {products.map((prod) => {
+                    const slug = getCanonicalProductSlug(prod);
+                    if (!slug || slug.startsWith("fallback-")) return null;
+                    return (
+                      <li key={prod.id}>
+                        <Link
+                          href={`/product/${slug}`}
+                          className="group flex items-center justify-between text-[13px] text-gray-700 hover:text-[#0a2766] font-medium py-1.5 px-3 rounded-lg border border-gray-100 hover:border-gray-200 hover:bg-[#f8f9fa] transition-all"
+                        >
+                          <span>{formatProductSeoName(prod.name)}</span>
+                          <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:translate-x-0.5 group-hover:text-[#3b5b95] shrink-0" />
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* Card 5: Technical Articles & Research Guides */}
@@ -301,8 +337,8 @@ export default function SitemapPage() {
             </div>
 
             <ul className="space-y-3">
-              {BLOG_ARTICLES.map((art) => (
-                <li key={art.id}>
+              {blogs.map((art) => (
+                <li key={art.slug || art.id}>
                   <Link
                     href={`/blogs/${art.slug}`}
                     className="p-3 rounded-xl border border-gray-100 hover:border-gray-200 hover:bg-[#f8f9fa] transition-all group block"

@@ -79,7 +79,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const productRoutes: MetadataRoute.Sitemap = [];
   for (const prod of products) {
     const slug = getCanonicalProductSlug(prod);
-    if (!slug) continue;
+    if (!slug || slug.startsWith("fallback-")) continue;
     const url = `${SITE_URL}/product/${slug}`;
     if (seenProductUrls.has(url)) continue;
     seenProductUrls.add(url);

@@ -1,4 +1,5 @@
 import { permanentRedirect } from "next/navigation";
+import { getServerBlogBySlug } from "@/lib/firestore-server";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -6,5 +7,6 @@ interface PageProps {
 
 export default async function BlogSlugRedirectPage({ params }: PageProps) {
   const { slug } = await params;
-  permanentRedirect(`/blogs/${slug}`);
+  const resolved = await getServerBlogBySlug(slug);
+  permanentRedirect(`/blogs/${resolved?.canonicalSlug || slug}`);
 }

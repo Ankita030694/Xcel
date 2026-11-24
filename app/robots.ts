@@ -6,9 +6,9 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: "/",
+        allow: ["/", "/_next/static/"],
         disallow: [
-          "/admin/",
+          "/admin",
           "/adminloginn",
           "/api/",
           "/test-storage",
@@ -16,6 +16,5 @@ export default function robots(): MetadataRoute.Robots {
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
-    host: SITE_URL,
   };
 }

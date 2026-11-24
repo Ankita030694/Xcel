@@ -2,11 +2,18 @@ import type { NextConfig } from "next";
 import { BLOG_ARTICLES } from "./data/blogs";
 
 const blogAliasRedirects = BLOG_ARTICLES.flatMap((article) =>
-  (article.aliases || []).map((alias) => ({
-    source: `/blogs/${alias}`,
-    destination: `/blogs/${article.slug}`,
-    permanent: true,
-  }))
+  (article.aliases || []).flatMap((alias) => [
+    {
+      source: `/blogs/${alias}`,
+      destination: `/blogs/${article.slug}`,
+      permanent: true,
+    },
+    {
+      source: `/blog/${alias}`,
+      destination: `/blogs/${article.slug}`,
+      permanent: true,
+    },
+  ])
 );
 
 const nextConfig: NextConfig = {
@@ -36,6 +43,8 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // Direct 1-hop redirects for legacy blog aliases (both /blog/<alias> and /blogs/<alias>)
+      ...blogAliasRedirects,
       {
         source: "/blog",
         destination: "/blogs",
@@ -66,11 +75,62 @@ const nextConfig: NextConfig = {
         destination: "/products",
         permanent: true,
       },
-      ...blogAliasRedirects,
+      // Consolidate duplicate brochure endpoints to a single canonical PDF
+      {
+        source: "/brochure",
+        destination: "/Xcel-Brochure.pdf",
+        permanent: true,
+      },
+      {
+        source: "/XCEL%20Brochure.pdf",
+        destination: "/Xcel-Brochure.pdf",
+        permanent: true,
+      },
+      {
+        source: "/Xcel%20Brochure%20.pdf",
+        destination: "/Xcel-Brochure.pdf",
+        permanent: true,
+      },
     ];
   },
   async headers() {
     return [
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow",
+          },
+        ],
+      },
+      {
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow",
+          },
+        ],
+      },
+      {
+        source: "/sitemap.xml",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, follow",
+          },
+        ],
+      },
+      {
+        source: "/admin",
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow",
+          },
+        ],
+      },
       {
         source: "/admin/:path*",
         headers: [
@@ -108,6 +168,23 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        source: "/Xcel-Brochure.pdf",
+        headers: [
+          {
+            key: "Link",
+            value: '<https://www.xcelstiro.com/Xcel-Brochure.pdf>; rel="canonical"',
+          },
+          {
+            key: "Content-Type",
+            value: "application/pdf",
+          },
+          {
+            key: "Content-Disposition",
+            value: "inline",
+          },
+        ],
+      },
+      {
         source: "/:path*.pdf",
         headers: [
           {
@@ -119,14 +196,6 @@ const nextConfig: NextConfig = {
             value: "inline",
           },
         ],
-      },
-    ];
-  },
-  async rewrites() {
-    return [
-      {
-        source: "/brochure",
-        destination: "/Xcel-Brochure.pdf",
       },
     ];
   },

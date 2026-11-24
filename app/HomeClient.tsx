@@ -571,7 +571,7 @@ const ProductsHoverGallery = () => {
       src: "/banners/excellence-banner-1.webp", 
       alt: "Apparel Washing & High Speed Extract Equipment", 
       title: "APPAREL WASHING & HIGH SPEED EXTRACT",
-      link: "/products?category=apparel-processing#apparel-processing",
+      link: "/products#apparel-processing",
       category: "apparel-processing"
     },
     { 
@@ -579,7 +579,7 @@ const ProductsHoverGallery = () => {
       src: "/banners/excellence-banner-2.webp", 
       alt: "Flat-Work Ironer & Finishing Commercial Equipment", 
       title: "FLAT-WORK IRONER",
-      link: "/products?category=flat-work#flat-work",
+      link: "/products#flat-work",
       category: "flat-work"
     },
     { 
@@ -587,7 +587,7 @@ const ProductsHoverGallery = () => {
       src: "/banners/excellence-banner-3.webp", 
       alt: "Softener Washer Dryer Multi-Stage Equipment", 
       title: "SOFTENER WASHER DRYER",
-      link: "/products?category=apparel-processing#apparel-processing",
+      link: "/products#apparel-processing",
       category: "apparel-processing"
     },
   ];
@@ -1418,7 +1418,7 @@ const ProductCategories = () => {
               className="w-1/2 md:w-1/3 lg:w-1/4 xl:w-1/5 shrink-0 snap-center px-2 sm:px-3"
             >
               <Link
-                href={`/products?category=${cat.id}#${cat.id}`}
+                href={`/products#${cat.id}`}
                 onClick={(e) => {
                   if (hasMoved.current) {
                     e.preventDefault();

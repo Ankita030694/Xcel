@@ -8,13 +8,13 @@ export const metadata: Metadata = {
   description:
     "Xcel Stiro Private Limited has manufactured high-performance industrial and commercial laundry equipment in India since 1994 — washer extractors, drying tumblers, flatwork ironers, and dry-cleaning machines backed by PAN-India support.",
   alternates: {
-    canonical: `${SITE_URL}/`,
+    canonical: SITE_URL,
   },
   openGraph: {
     title: "XCEL Stiro | Industrial & Commercial Laundry Equipment Manufacturer in India",
     description:
       "High-performance Make-in-India industrial and commercial laundry machines since 1994, trusted across 30,000+ installations nationwide.",
-    url: `${SITE_URL}/`,
+    url: SITE_URL,
     siteName: "XCEL Stiro",
     type: "website",
   },

@@ -188,7 +188,7 @@ export const Footer = () => {
       e.preventDefault();
 
       try {
-        const newUrl = `/products?category=${categoryId}#${categoryId}`;
+        const newUrl = `/products#${categoryId}`;
         window.history.replaceState(window.history.state, '', newUrl);
       } catch (err) {}
 
@@ -318,7 +318,7 @@ export const Footer = () => {
       try {
         const newUrl = categoryName.toLowerCase() === 'all'
           ? '/blogs'
-          : `/blogs?category=${encodeURIComponent(categoryName)}`;
+          : `/blogs#category=${encodeURIComponent(categoryName)}`;
         window.history.replaceState(window.history.state, '', newUrl);
       } catch (err) {}
 
@@ -330,6 +330,11 @@ export const Footer = () => {
     } else {
       try {
         sessionStorage.setItem('xcel_scroll_to_blogs', 'true');
+        if (categoryName.toLowerCase() === 'all') {
+          sessionStorage.removeItem('xcel_blog_category');
+        } else {
+          sessionStorage.setItem('xcel_blog_category', categoryName);
+        }
       } catch (err) {}
     }
   };
@@ -566,16 +571,16 @@ export const Footer = () => {
                   </Link>
                 </h5>
                 <ul className="flex flex-col gap-2 text-white/80 text-[11px]">
-                  <li><Link href="/products?category=washing#washing" onClick={(e) => handleProductCategoryClick('washing', e)} className="hover:text-white transition-colors">WASHING</Link></li>
-                  <li><Link href="/products?category=drying#drying" onClick={(e) => handleProductCategoryClick('drying', e)} className="hover:text-white transition-colors">DRYING</Link></li>
-                  <li><Link href="/products?category=apparel-processing#apparel-processing" onClick={(e) => handleProductCategoryClick('apparel-processing', e)} className="hover:text-white transition-colors">APPAREL PROCESSING</Link></li>
-                  <li><Link href="/products?category=dry-cleaning#dry-cleaning" onClick={(e) => handleProductCategoryClick('dry-cleaning', e)} className="hover:text-white transition-colors">DRY-CLEANING</Link></li>
-                  <li><Link href="/products?category=flat-work#flat-work" onClick={(e) => handleProductCategoryClick('flat-work', e)} className="hover:text-white transition-colors">FLAT-WORK</Link></li>
-                  <li><Link href="/products?category=steam-finishing#steam-finishing" onClick={(e) => handleProductCategoryClick('steam-finishing', e)} className="hover:text-white transition-colors">STEAM-FINISHING</Link></li>
-                  <li><Link href="/products?category=water-heater#water-heater" onClick={(e) => handleProductCategoryClick('water-heater', e)} className="hover:text-white transition-colors">WATER HEATER</Link></li>
-                  <li><Link href="/products?category=fabric-checking#fabric-checking" onClick={(e) => handleProductCategoryClick('fabric-checking', e)} className="hover:text-white transition-colors">FABRIC CHECKING</Link></li>
-                  <li><Link href="/products?category=other-equipment#other-equipment" onClick={(e) => handleProductCategoryClick('other-equipment', e)} className="hover:text-white transition-colors">OTHER EQUIPMENT</Link></li>
-                  <li><Link href="/products?category=complete-range#complete-range" onClick={(e) => handleProductCategoryClick('complete-range', e)} className="hover:text-white transition-colors">COMPLETE RANGE</Link></li>
+                  <li><Link href="/products#washing" onClick={(e) => handleProductCategoryClick('washing', e)} className="hover:text-white transition-colors">WASHING</Link></li>
+                  <li><Link href="/products#drying" onClick={(e) => handleProductCategoryClick('drying', e)} className="hover:text-white transition-colors">DRYING</Link></li>
+                  <li><Link href="/products#apparel-processing" onClick={(e) => handleProductCategoryClick('apparel-processing', e)} className="hover:text-white transition-colors">APPAREL PROCESSING</Link></li>
+                  <li><Link href="/products#dry-cleaning" onClick={(e) => handleProductCategoryClick('dry-cleaning', e)} className="hover:text-white transition-colors">DRY-CLEANING</Link></li>
+                  <li><Link href="/products#flat-work" onClick={(e) => handleProductCategoryClick('flat-work', e)} className="hover:text-white transition-colors">FLAT-WORK</Link></li>
+                  <li><Link href="/products#steam-finishing" onClick={(e) => handleProductCategoryClick('steam-finishing', e)} className="hover:text-white transition-colors">STEAM-FINISHING</Link></li>
+                  <li><Link href="/products#water-heater" onClick={(e) => handleProductCategoryClick('water-heater', e)} className="hover:text-white transition-colors">WATER HEATER</Link></li>
+                  <li><Link href="/products#fabric-checking" onClick={(e) => handleProductCategoryClick('fabric-checking', e)} className="hover:text-white transition-colors">FABRIC CHECKING</Link></li>
+                  <li><Link href="/products#other-equipment" onClick={(e) => handleProductCategoryClick('other-equipment', e)} className="hover:text-white transition-colors">OTHER EQUIPMENT</Link></li>
+                  <li><Link href="/products#complete-range" onClick={(e) => handleProductCategoryClick('complete-range', e)} className="hover:text-white transition-colors">COMPLETE RANGE</Link></li>
                 </ul>
               </div>
               <div className="flex-[1.5]">
@@ -603,7 +608,7 @@ export const Footer = () => {
                     .map((cat) => (
                       <li key={cat}>
                         <Link 
-                          href={`/blogs?category=${encodeURIComponent(cat)}`} 
+                          href={`/blogs#category=${encodeURIComponent(cat)}`} 
                           onClick={(e) => handleBlogCategoryClick(cat, e)}
                           className="hover:text-white transition-colors block uppercase leading-snug"
                         >
@@ -638,9 +643,9 @@ export const Footer = () => {
             XCEL STIRO PRIVATE LIMITED. ALL RIGHTS RESERVED
           </div>
           <div className="flex flex-wrap justify-center gap-4 sm:gap-6 lg:gap-8 text-[11px] sm:text-[12px] font-semibold tracking-wide text-white">
-            <a href="/privacy" className="hover:text-white/70 transition-colors">PRIVACY POLICY</a>
-            <a href="/terms" className="hover:text-white/70 transition-colors">TERMS OF SERVICE</a>
-            <a href="/sitemap" className="hover:text-white/70 transition-colors">SITEMAP</a>
+            <Link href="/privacy" className="hover:text-white/70 transition-colors">PRIVACY POLICY</Link>
+            <Link href="/terms" className="hover:text-white/70 transition-colors">TERMS OF SERVICE</Link>
+            <Link href="/sitemap" className="hover:text-white/70 transition-colors">SITEMAP</Link>
           </div>
         </div>
       </div>

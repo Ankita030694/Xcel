@@ -42,7 +42,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     ...(article.secondaryKeywords || []),
   ].filter((k): k is string => Boolean(k));
 
-  const rawTitle = (article.metaTitle || article.title || "")
+  const rawMetaTitle = (article.metaTitle || "")
+    .replace(/\s*\|\s*XCEL(\s+STIRO)?$/i, "")
+    .trim();
+  const isTruncatedMetaTitle = /\b(in|for|of|to|on|at|by|with|and|or|&|-|—)$/i.test(rawMetaTitle);
+  const rawTitle = (!rawMetaTitle || isTruncatedMetaTitle ? article.title || "" : rawMetaTitle)
     .replace(/\s*\|\s*XCEL(\s+STIRO)?$/i, "")
     .trim();
 

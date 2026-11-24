@@ -84,10 +84,10 @@ export default async function ProductDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  const { product, matchedById, canonicalSlug, allProducts } = resolved;
+  const { product, canonicalSlug, allProducts } = resolved;
 
-  // Consolidate legacy Firestore document ID URLs or non-canonical custom URLs via 308 Permanent Redirect
-  if (matchedById && canonicalSlug && id !== canonicalSlug) {
+  // Consolidate legacy Firestore IDs, uppercase/encoded slugs, or non-canonical custom URLs via 308 Permanent Redirect
+  if (canonicalSlug && id !== canonicalSlug) {
     permanentRedirect(`/product/${canonicalSlug}`);
   }
 

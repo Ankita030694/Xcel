@@ -209,8 +209,28 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
 
     const syncCategoryFromUrl = () => {
       if (typeof window === "undefined") return;
-      const urlParams = new URLSearchParams(window.location.search);
-      const catParam = urlParams.get("category");
+      let catParam: string | null = null;
+      const rawHash = window.location.hash ? window.location.hash.substring(1) : "";
+      if (rawHash.startsWith("category=")) {
+        try {
+          catParam = decodeURIComponent(rawHash.slice("category=".length));
+        } catch {
+          catParam = rawHash.slice("category=".length);
+        }
+      }
+      if (!catParam) {
+        const urlParams = new URLSearchParams(window.location.search);
+        catParam = urlParams.get("category");
+      }
+      if (!catParam) {
+        try {
+          const stored = sessionStorage.getItem("xcel_blog_category");
+          if (stored) {
+            catParam = stored;
+            sessionStorage.removeItem("xcel_blog_category");
+          }
+        } catch (e) {}
+      }
       if (catParam) {
         setSelectedCategory(catParam);
       }
@@ -259,12 +279,14 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
     window.addEventListener("trigger-blogs-autoscroll", handleTriggerAutoScroll);
     window.addEventListener("scroll-to-blogs-content-direct", handleDirectScrollToContent);
     window.addEventListener("popstate", syncCategoryFromUrl);
+    window.addEventListener("hashchange", syncCategoryFromUrl);
     return () => {
       if (autoScrollTimerRef.current) clearTimeout(autoScrollTimerRef.current);
       window.removeEventListener("select-blog-category", handleCustomCategoryEvent);
       window.removeEventListener("trigger-blogs-autoscroll", handleTriggerAutoScroll);
       window.removeEventListener("scroll-to-blogs-content-direct", handleDirectScrollToContent);
       window.removeEventListener("popstate", syncCategoryFromUrl);
+      window.removeEventListener("hashchange", syncCategoryFromUrl);
     };
   }, []);
 
@@ -395,7 +417,12 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
             {/* "ALL" Tab */}
             <div className="flex items-center">
               <button
-                onClick={() => setSelectedCategory("all")}
+                onClick={() => {
+                  setSelectedCategory("all");
+                  try {
+                    window.history.replaceState(window.history.state, "", "/blogs");
+                  } catch (e) {}
+                }}
                 className={`px-3 sm:px-4 lg:px-5 xl:px-6 py-2 sm:py-2.5 lg:py-3 text-[12px] sm:text-[14px] lg:text-[15px] xl:text-[16px] font-bold uppercase tracking-normal lg:tracking-wider transition-all rounded-md cursor-pointer ${
                   selectedCategory === "all"
                     ? "text-white bg-[#0a2766]"
@@ -412,7 +439,16 @@ export default function BlogsClient({ initialArticles }: { initialArticles: Blog
               return (
                 <div key={cat} className="flex items-center">
                   <button
-                    onClick={() => setSelectedCategory(cat)}
+                    onClick={() => {
+                      setSelectedCategory(cat);
+                      try {
+                        window.history.replaceState(
+                          window.history.state,
+                          "",
+                          `/blogs#category=${encodeURIComponent(cat)}`
+                        );
+                      } catch (e) {}
+                    }}
                     className={`px-3 sm:px-4 lg:px-5 xl:px-6 py-2 sm:py-2.5 lg:py-3 text-[12px] sm:text-[14px] lg:text-[15px] xl:text-[16px] font-bold uppercase tracking-normal lg:tracking-wider transition-all rounded-md cursor-pointer ${
                       isActive
                         ? "text-white bg-[#0a2766]"
